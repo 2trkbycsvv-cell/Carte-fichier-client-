@@ -1,0 +1,911 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><a href="../" onclick="history.back();return false" class="dcrf-back" style="display:flex;align-items:center;gap:6px;padding:10px 16px;font:600 15px system-ui,-apple-system,sans-serif;color:#3c8219;background:#ffffff;border-bottom:1px solid #e2e9e4;text-decoration:none;margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px)))">&#8249;&nbsp;Appli DCRF</a>
+<title>Simulateur DPE terrain</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout : en-tête collant (progression + étiquette en direct), une question par écran avec tuiles, puis rapport client en sections */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --ink:#0f201b; --muted:#5a6a64; --line:#dbe3e0;
+  --accent:#0e6a5a; --accent-2:#e3f1ed; --accent-ink:#ffffff; --shadow:0 1px 2px rgba(15,32,27,.06),0 6px 20px rgba(15,32,27,.06);
+  --good:#1e8a4c; --warn:#b26a00; --bad:#c3392b;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-data:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1311; --surface:#141e1b; --ink:#e3ebe8; --muted:#97aaa3; --line:#25332f;
+  --accent:#48c2a3; --accent-2:#173029; --accent-ink:#04110d; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  --good:#4cc37a; --warn:#e3a33b; --bad:#ef6b5c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1311; --surface:#141e1b; --ink:#e3ebe8; --muted:#97aaa3; --line:#25332f;
+  --accent:#48c2a3; --accent-2:#173029; --accent-ink:#04110d; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  --good:#4cc37a; --warn:#e3a33b; --bad:#ef6b5c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 120px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+h1,h2,h3{font-family:var(--f-display);font-stretch:82%;font-weight:800;margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+.mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font-size:12px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--accent)}
+.shell{max-width:760px;margin:0 auto}
+.shell.wide{max-width:980px}
+
+/* en-tête */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-block:14px 10px;display:grid;gap:10px}
+.top-row{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.brand{font:800 18px var(--f-display);font-stretch:80%;letter-spacing:.01em}
+.pill{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 12px 4px 4px;box-shadow:var(--shadow)}
+.pill .lt{width:30px;height:30px;border-radius:99px;display:grid;place-items:center;font:800 18px var(--f-display);color:#111;transition:background .35s}
+.pill .lt.pop{animation:pop .4s ease}
+@keyframes pop{40%{transform:scale(1.25)}}
+.pill span{font-size:13px}
+.progress{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .35s ease}
+.sections{display:flex;gap:4px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.sections b{color:var(--ink)}
+
+/* question */
+.q{padding-top:18px;display:grid;gap:20px}
+.q.in{animation:slide .32s ease both}
+.q.back{animation:slideback .32s ease both}
+@keyframes slide{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes slideback{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+.q h2{font-size:clamp(26px,5.5vw,36px);line-height:1.08}
+.q .sub{color:var(--muted);max-width:56ch;margin-top:6px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:10px}
+.tiles.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tile{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center;box-shadow:var(--shadow);transition:border-color .15s,transform .15s,background .15s}
+.tile:hover{border-color:var(--accent)}
+.tile:active{transform:scale(.98)}
+.tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tile[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-2)}
+.tile .ic{width:40px;height:40px;border-radius:10px;background:var(--accent-2);color:var(--accent);display:grid;place-items:center;grid-row:span 2}
+.tile[aria-pressed="true"] .ic{background:var(--accent);color:var(--accent-ink)}
+.tile .ic svg{width:24px;height:24px}
+.tile b{font-weight:700;font-size:15.5px;line-height:1.25}
+.tile small{color:var(--muted);font-size:13px;line-height:1.3}
+.tile.noic{grid-template-columns:minmax(0,1fr)}
+.form{display:grid;gap:18px}
+.f{display:grid;gap:8px}
+.f > label,.f > .lab{font-weight:700}
+.f .hint{font-size:13px;color:var(--muted)}
+input[type=text],input[type=number]{font:600 18px var(--f-body);color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;min-width:0}
+input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.rangeval{display:flex;align-items:baseline;gap:6px}
+.rangeval b{font:800 34px var(--f-display);font-stretch:85%}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{all:unset;cursor:pointer;box-sizing:border-box;padding:9px 14px;border-radius:99px;border:1.5px solid var(--line);background:var(--surface);font-weight:600;font-size:14.5px}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stepper{display:flex;align-items:center;gap:14px}
+.stepper button{all:unset;cursor:pointer;width:44px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center;font:700 22px var(--f-body)}
+.stepper b{font:800 30px var(--f-display);min-width:2ch;text-align:center}
+
+/* barre basse */
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;background:linear-gradient(to top,var(--bg) 70%,transparent);
+  padding:20px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.bottom .in{max-width:760px;margin:0 auto;display:flex;gap:10px}
+.btn{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;font:700 16px var(--f-body);border-radius:14px;padding:14px 18px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);flex:1}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+
+/* accueil */
+.hero{padding-top:24px;display:grid;gap:22px}
+.hero h1{font-size:clamp(34px,7vw,52px);line-height:1}
+.hero .lead{font-size:17px;color:var(--muted);max-width:52ch}
+.arrows{display:grid;gap:4px;max-width:320px}
+.arr{height:24px;display:flex;align-items:center;padding-left:10px;font:800 15px var(--f-display);color:#111;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%);border-radius:3px 0 0 3px}
+.hero .how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.hero .how{grid-template-columns:minmax(0,1fr)}}
+.how div{border-top:2px solid var(--accent);padding-top:8px;font-size:14px;color:var(--muted)}
+.how b{display:block;color:var(--ink);font-size:15px}
+.calc{min-height:50vh;display:grid;place-items:center;text-align:center;gap:14px}
+.calc .spin{width:54px;height:54px;border-radius:50%;border:5px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* rapport */
+.report{display:grid;gap:18px;padding-top:16px}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,4vw,30px);display:grid;gap:18px;box-shadow:var(--shadow);min-width:0}
+.cover{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:24px;align-items:center}
+@media (max-width:720px){.cover{grid-template-columns:minmax(0,1fr)}}
+.cover h1{font-size:clamp(30px,6vw,44px);line-height:1.02}
+.verdict{font-size:18px;line-height:1.45;max-width:52ch}
+.verdict b{font-weight:700}
+.scale{display:grid;gap:4px}
+.srow{display:flex;align-items:center;gap:8px}
+.sbar{height:22px;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 8px;font:800 14px var(--f-display);color:#111;clip-path:polygon(0 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,0 100%);border-radius:3px 0 0 3px;transition:height .3s}
+.sbar small{font:500 10.5px var(--f-data);opacity:.75}
+.srow.on .sbar{height:38px;font-size:24px;box-shadow:0 0 0 2px var(--ink)}
+.srow .me{font:700 12px var(--f-body);white-space:nowrap}
+.light{color:#fff!important}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--bg);border-radius:12px;padding:12px;display:grid;gap:2px}
+.kpi b{font:800 26px var(--f-display);font-stretch:85%}
+.kpi span{font-size:13px;color:var(--muted);line-height:1.3}
+.sec-h{display:grid;gap:4px}
+.sec-h h2{font-size:clamp(22px,4vw,28px)}
+.points{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.points li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:start}
+.points .n{width:34px;height:34px;border-radius:10px;background:var(--accent-2);color:var(--accent);display:grid;place-items:center}
+.points .n svg{width:20px;height:20px}
+.diag{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:center}
+@media (max-width:720px){.diag{grid-template-columns:minmax(0,1fr)}}
+.house{width:100%;height:auto;max-width:440px}
+.legend{display:grid;gap:8px}
+.lrow{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14.5px}
+.lrow i{width:12px;height:12px;border-radius:3px}
+.lrow b{font-family:var(--f-data);font-size:13.5px}
+.timeline{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding-top:6px}
+@media (max-width:560px){.timeline{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tl{border-top:4px solid var(--line);padding-top:8px;display:grid;gap:4px;font-size:13.5px}
+.tl.hit{border-color:var(--bad)}
+.tl.hit b{color:var(--bad)}
+.tl b{font:800 20px var(--f-display);font-stretch:85%}
+.notes{display:grid;gap:8px;margin:0;padding:0;list-style:none;font-size:14.5px}
+.notes li{display:grid;grid-template-columns:10px minmax(0,1fr);gap:10px}
+.notes .dot{width:8px;height:8px;border-radius:50%;margin-top:8px}
+.road{display:grid;gap:0}
+.stepc{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;position:relative;padding-bottom:18px}
+.stepc:not(:last-child)::before{content:"";position:absolute;left:21px;top:44px;bottom:0;width:2px;background:var(--line)}
+.stepc .lt{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font:800 24px var(--f-display);color:#111}
+.stepc h3{font-size:19px;font-stretch:88%}
+.stepc .facts{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13.5px;color:var(--muted);margin-top:4px}
+.stepc .facts b{color:var(--ink);font-family:var(--f-data);font-weight:500}
+.ba{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:stretch}
+.ba .col{background:var(--bg);border-radius:14px;padding:14px;display:grid;gap:8px;align-content:start}
+.ba .col.after{background:var(--accent-2)}
+.ba .mid{display:grid;place-items:center;font:800 26px var(--f-display);color:var(--muted)}
+.ba .big{width:56px;height:56px;border-radius:12px;display:grid;place-items:center;font:800 32px var(--f-display);color:#111}
+.ba dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;margin:0;font-size:14px}
+.ba dt{color:var(--muted)}
+.ba dd{margin:0;text-align:right;font-family:var(--f-data);font-size:13.5px}
+@media (max-width:520px){.ba{grid-template-columns:minmax(0,1fr)}.ba .mid{transform:rotate(90deg)}}
+.fin{display:grid;gap:10px}
+.stack{display:flex;height:34px;border-radius:10px;overflow:hidden;font:700 12.5px var(--f-body)}
+.stack div{display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;min-width:0;padding:0 6px}
+.finrows{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;font-size:15px}
+.finrows span:nth-child(even){font-family:var(--f-data);text-align:right}
+.finrows .tot{font-weight:700;border-top:1px solid var(--line);padding-top:6px}
+.callout{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:16px;display:grid;gap:4px}
+.callout b{font:800 24px var(--f-display);font-stretch:85%}
+.more{display:grid;gap:8px}
+.more div{display:flex;justify-content:space-between;gap:12px;font-size:14.5px;border-bottom:1px solid var(--line);padding-bottom:8px;flex-wrap:wrap}
+details{border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;font-weight:700}
+.prices{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px}
+.prices label{font-size:13px;font-weight:600;display:grid;gap:4px}
+.prices input{font-size:15px;padding:8px 10px}
+.small{font-size:13px;color:var(--muted);line-height:1.5}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.toast{font-size:14px;color:var(--good);font-weight:600}
+textarea{width:100%;min-height:220px;font:13px var(--f-data);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px}
+@media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+</style>
+
+<div class="shell" id="shell">
+  <div class="top" id="top" hidden>
+    <div class="top-row">
+      <span class="brand">Simulateur DPE</span>
+      <div class="pill" aria-live="polite"><span class="lt" id="pillLt">G</span><span><b class="mono" id="pillKwh">0</b> kWh/m²/an</span></div>
+    </div>
+    <div class="progress"><i id="bar"></i></div>
+    <div class="sections" id="sections"></div>
+  </div>
+  <main id="view"></main>
+</div>
+<div class="bottom" id="bottom" hidden><div class="in" id="bottomIn"></div></div>
+
+<script>
+(function(){
+/* ================= données de référence ================= */
+const DPE_COL = {A:'#009c6d',B:'#52b153',C:'#78bd76',D:'#f4e70f',E:'#f0b50f',F:'#eb8235',G:'#d7221f'};
+const GES_COL = {A:'#a4dbf8',B:'#8cb4d3',C:'#7792b1',D:'#5f6e8d',E:'#4a4c6c',F:'#352d4c',G:'#1e0c2d'};
+const LETTERS = ['A','B','C','D','E','F','G'];
+const EP_T = [70,110,180,250,330,420];   // kWhEP/m²/an
+const GES_T = [6,11,30,50,70,100];       // kgCO2/m²/an
+const CEP = {elec:1.9, gaz:1, fioul:1, gpl:1, bois:1, granules:1, reseau:1}; // coefficient électricité 1,9 depuis le 01/01/2026
+const GES_F = {gaz:.227, fioul:.324, gpl:.272, bois:.03, granules:.03, reseau:.1};
+const GES_ELEC = {chauffage:.079, ecs:.065, froid:.064, eclairage:.069, aux:.064};
+const DJU = {H1a:2600,H1b:2800,H1c:2650,H2a:2250,H2b:2300,H2c:2050,H2d:2200,H3:1500};
+const ZONES = {
+  H1a:'02 14 27 59 60 61 62 75 76 77 78 80 91 92 93 94 95',
+  H1b:'08 10 25 39 45 51 52 54 55 57 58 67 68 70 71 88 89 90',
+  H1c:'01 03 05 15 19 23 38 42 43 63 69 73 74 87',
+  H2a:'22 29 35 50 56',
+  H2b:'16 17 18 28 36 37 41 44 49 53 72 79 85 86',
+  H2c:'09 12 24 31 32 33 40 46 47 64 65 81 82',
+  H2d:'04 07 26 48 84',
+  H3:'06 11 13 20 30 34 66 83'
+};
+const IDF = ['75','77','78','91','92','93','94','95'];
+const PERIODS = [['p1','Avant 1948'],['p2','1948 – 1974'],['p3','1975 – 1981'],['p4','1982 – 1988'],['p5','1989 – 2000'],['p6','2001 – 2012'],['p7','Après 2012']];
+const MAT = {pierre:['Pierre / moellons',2.0],brique:['Brique pleine',1.8],torchis:['Pan de bois, torchis',1.4],parpaing:['Parpaing / agglo',2.5],beton:['Béton banché',2.8],bois:['Ossature bois',0.9],brique_creuse:['Brique creuse / monomur',1.2]};
+const U_WALL_P = {p3:1.0,p4:.8,p5:.55,p6:.4,p7:.25};
+const U_ROOF_P = {p1:2.0,p2:2.0,p3:.5,p4:.4,p5:.3,p6:.22,p7:.15};
+const U_FLOOR_P = {p1:2.0,p2:2.0,p3:.9,p4:.8,p5:.5,p6:.36,p7:.25};
+const VITRAGE = {simple:['Simple vitrage',4.8],double_ancien:['Double vitrage avant 2000',2.9],double_recent:['Double vitrage récent',1.6],triple:['Triple vitrage',1.0]};
+const VENTIL = {ouverture:['Ouverture des fenêtres, aucune bouche',.9,0],grilles:['Grilles ou entrées d\'air naturelles',.75,0],vmc_auto:['VMC simple flux autoréglable',.6,2.0],vmc_hygro:['VMC simple flux hygroréglable',.45,1.2],vmc_df:['VMC double flux',.25,3.0]};
+// [libellé, énergie, rendement global, circuit à eau, groupe]
+const HEAT = {
+  fioul_old:['Chaudière fioul ancienne (avant 2000)','fioul',.65,1,'Fioul'],
+  fioul_std:['Chaudière fioul standard ou basse température','fioul',.78,1,'Fioul'],
+  fioul_cond:['Chaudière fioul à condensation','fioul',.88,1,'Fioul'],
+  gaz_old:['Chaudière gaz ancienne (avant 2000)','gaz',.68,1,'Gaz'],
+  gaz_std:['Chaudière gaz standard ou basse température','gaz',.8,1,'Gaz'],
+  gaz_cond:['Chaudière gaz à condensation','gaz',.9,1,'Gaz'],
+  gaz_coll:['Chaudière gaz collective','gaz',.8,1,'Gaz'],
+  gpl:['Chaudière propane / GPL','gpl',.8,1,'Gaz'],
+  elec_conv:['Convecteurs électriques (« grille-pain »)','elec',.93,0,'Électricité'],
+  elec_ray:['Panneaux rayonnants ou radiateurs à inertie','elec',.97,0,'Électricité'],
+  elec_sol:['Plancher ou plafond chauffant électrique','elec',.9,0,'Électricité'],
+  pac_air_air:['Pompe à chaleur air/air (clim réversible)','elec',2.4,0,'Pompe à chaleur'],
+  pac_air_eau:['Pompe à chaleur air/eau','elec',2.8,1,'Pompe à chaleur'],
+  pac_geo:['Pompe à chaleur géothermique','elec',3.6,1,'Pompe à chaleur'],
+  bois_old:['Poêle ou insert bois ancien (avant 2010)','bois',.55,0,'Bois'],
+  bois_new:['Poêle ou insert bûches récent','bois',.72,0,'Bois'],
+  gran_poele:['Poêle à granulés','granules',.82,0,'Bois'],
+  gran_chaud:['Chaudière à granulés','granules',.85,1,'Bois'],
+  reseau:['Réseau de chaleur urbain','reseau',.85,1,'Autre']
+};
+const APPOINT = {none:['Aucun',null,0],bois:['Poêle ou cheminée à bûches','bois',.65],granules:['Poêle à granulés','granules',.82],elec:['Radiateurs électriques','elec',.95]};
+const ECS = {chauffage:'Produite par le chauffage (chaudière, PAC)',cumulus:'Ballon électrique (cumulus)',thermo:'Chauffe-eau thermodynamique',gaz_inst:'Chauffe-eau gaz instantané',solaire:'Chauffe-eau solaire (avec appoint électrique)'};
+const PRICES0 = {elec:.20, gaz:.11, fioul:.115, gpl:.17, bois:.07, granules:.08, reseau:.10};
+const EN_LABEL = {elec:'Électricité',gaz:'Gaz',fioul:'Fioul',gpl:'Propane',bois:'Bois bûches',granules:'Granulés',reseau:'Réseau de chaleur'};
+// plafonds Anah 2026 [bleu, jaune, violet] pour 1..5 pers + par pers. suppl.
+const PLAF = {
+  hors:[[17363,22259,31185],[25393,32553,45842],[30540,39148,55196],[35676,45735,64550],[40835,52348,73907],[5151,6598,9357]],
+  idf:[[24031,29253,40851],[35270,42933,60051],[42357,51564,71846],[49455,60208,84562],[56580,68877,96817],[7116,8663,12257]]
+};
+const CAT = {bleu:['Très modestes','#2f6fd6'],jaune:['Modestes','#d9a400'],violet:['Intermédiaires','#8a4fd1'],rose:['Supérieurs','#d6559a']};
+
+/* ================= état ================= */
+const EXAMPLE = {
+  client:'', adresse:'', cp:'37500', altitude:'lt400', statut:'occupant',
+  type:'maison', mitoyen:'0', etage:'inter', periode:'p2', surface:100, niveaux:1, hsp:'2.5',
+  murMat:'parpaing', murIso:'non', toitType:'perdus', toitIso:'faible',
+  plancherType:'sous_sol', plancherIso:'non', vitrage:'double_ancien', menuiserie:'pvc', partVitree:'.16',
+  chauffage:'fioul_old', appoint:'none', thermostat:'non', clim:'non', ventil:'ouverture', ecs:'chauffage',
+  personnes:2, rfr:30000
+};
+let S = JSON.parse(JSON.stringify(EXAMPLE));
+let PRICES = Object.assign({}, PRICES0);
+let isExample = true;
+let step = 0;
+
+/* ================= modèle de calcul ================= */
+function zoneOf(cp){
+  const d = String(cp||'').trim().slice(0,2);
+  for (const z in ZONES) if (ZONES[z].split(' ').includes(d)) return z;
+  return 'H2b';
+}
+function letter(v, t){ for (let i=0;i<t.length;i++) if (v <= t[i]) return LETTERS[i]; return 'G'; }
+function worst(a,b){ return LETTERS[Math.max(LETTERS.indexOf(a), LETTERS.indexOf(b))]; }
+
+function geometry(s){
+  const Sh = Math.max(10, +s.surface || 0);
+  const apt = s.type === 'appartement';
+  const n = apt ? 1 : Math.max(1, +s.niveaux || 1);
+  const h = +s.hsp || 2.5;
+  const foot = Sh / n;
+  const perim = 4 * Math.sqrt(foot) * 1.15;
+  const ext = apt ? .55 : [1,.78,.56][+s.mitoyen || 0];
+  const wallGross = perim * h * n * ext;
+  const winArea = Sh * (+s.partVitree || .16);
+  const wallNet = Math.max(wallGross - winArea, wallGross * .3);
+  const roofArea = apt ? (s.etage === 'dernier' ? Sh : 0) : foot * (s.toitType === 'amenages' ? 1.25 : 1);
+  const floorArea = apt ? (s.etage === 'rdc' ? Sh : 0) : foot;
+  return {Sh, n, h, foot, wallNet, winArea, roofArea, floorArea, volume: Sh*h};
+}
+function uValues(s){
+  let Um;
+  if (s.murIso === 'ite') Um = .25;
+  else if (s.murIso === 'iti') Um = .35;
+  else if (s.murIso === 'faible') Um = .9;
+  else if (s.murIso === 'non' || ['p1','p2'].includes(s.periode)) Um = MAT[s.murMat][1];
+  else Um = Math.min(MAT[s.murMat][1], U_WALL_P[s.periode]);
+  const roofNone = s.toitType === 'terrasse' ? 2.0 : 2.5;
+  const Ut = {non:roofNone, faible:.6, moyenne:.3, forte:.17}[s.toitIso] ?? U_ROOF_P[s.periode];
+  const Up = {non:2.0, oui:.3}[s.plancherIso] ?? U_FLOOR_P[s.periode];
+  const Uw = VITRAGE[s.vitrage][1] + (s.menuiserie === 'alu' && s.vitrage !== 'simple' ? .3 : 0);
+  const b = {vide_sanitaire:.8, sous_sol:.75, terre_plein:.45, local_chauffe:0}[s.plancherType];
+  return {Um, Ut, Up, Uw, b};
+}
+function nadeq(Sh){
+  const Nmax = Sh < 30 ? 1 : Sh < 70 ? 1.75 - .01875*(70-Sh) : .025*Sh;
+  return Nmax < 1.75 ? Nmax : 1.75 + .3*(Nmax - 1.75);
+}
+function simulate(s){
+  const g = geometry(s), u = uValues(s), zone = zoneOf(s.cp);
+  const ach = VENTIL[s.ventil][1];
+  const dep = {
+    'Murs': g.wallNet * u.Um,
+    'Toiture': g.roofArea * u.Ut,
+    'Plancher bas': g.floorArea * u.Up * u.b,
+    'Fenêtres': g.winArea * u.Uw,
+    'Air renouvelé et fuites': .34 * ach * g.volume
+  };
+  const trans = dep['Murs'] + dep['Toiture'] + dep['Plancher bas'] + dep['Fenêtres'];
+  dep['Ponts thermiques'] = trans * (s.murIso === 'ite' ? .05 : .12);
+  const GV = Object.values(dep).reduce((a,b)=>a+b,0);
+  const alt = {lt400:1, '400_800':1.15, gt800:1.3}[s.altitude];
+  let besoin = GV * DJU[zone] * 24 / 1000 * .7 * alt * (s.thermostat === 'non' ? 1.07 : 1);
+
+  const ef = {}; const ges = {}; const byUse = {chauffage:0, ecs:0, froid:0, eclairage:0, aux:0};
+  const costUse = {chauffage:0, ecs:0, froid:0, eclairage:0, aux:0};
+  let epTot = 0, gesTot = 0, cost = 0;
+  function add(use, energy, kwh){
+    if (kwh <= 0) return;
+    ef[energy] = (ef[energy] || 0) + kwh;
+    byUse[use] += kwh;
+    const gco2 = energy === 'elec' ? GES_ELEC[use] : GES_F[energy];
+    epTot += kwh * CEP[energy];
+    gesTot += kwh * gco2;
+    const c = kwh * PRICES[energy];
+    costUse[use] += c; cost += c;
+  }
+  // chauffage + appoint
+  const H = HEAT[s.chauffage];
+  const ap = APPOINT[s.appoint];
+  const share = s.appoint !== 'none' ? .3 : 0;
+  add('chauffage', H[1], besoin * (1 - share) / H[2]);
+  if (share) add('chauffage', ap[1], besoin * share / ap[2]);
+  // eau chaude
+  const becs = 1.163 * nadeq(g.Sh) * 56 * 29.5 * 365 / 1000;
+  let ecsMode = s.ecs;
+  if (ecsMode === 'chauffage' && !H[3]) ecsMode = 'cumulus';
+  if (ecsMode === 'chauffage') {
+    const eff = s.chauffage === 'pac_air_eau' ? 2.0 : s.chauffage === 'pac_geo' ? 2.5 : H[2] * .85;
+    add('ecs', H[1], becs / eff);
+  } else if (ecsMode === 'cumulus') add('ecs', 'elec', becs / .8);
+  else if (ecsMode === 'thermo') add('ecs', 'elec', becs / 2.4);
+  else if (ecsMode === 'gaz_inst') add('ecs', 'gaz', becs / .75);
+  else if (ecsMode === 'solaire') add('ecs', 'elec', becs * .45 / .8);
+  // froid, éclairage, auxiliaires
+  const clim = s.clim === 'oui' || (s.chauffage === 'pac_air_air' && s.clim !== 'non_pac');
+  if (s.clim === 'oui') add('froid', 'elec', g.Sh * ({H1:2, H2:3.5, H3:6}[zone.slice(0,2)]));
+  add('eclairage', 'elec', g.Sh * 1.6);
+  add('aux', 'elec', g.Sh * VENTIL[s.ventil][2] + (H[3] ? g.Sh * 1.0 : 0));
+
+  const epM2 = epTot / g.Sh, gesM2 = gesTot / g.Sh;
+  const le = letter(epM2, EP_T), lg = letter(gesM2, GES_T);
+  return {g, u, zone, dep, GV, besoin, ef, byUse, costUse, cost, epM2, gesM2, gesTot,
+    efTot: Object.values(ef).reduce((a,b)=>a+b,0), le, lg, cls: worst(le, lg), ecsMode};
+}
+
+/* ================= travaux ================= */
+function category(s){
+  const d = String(s.cp||'').slice(0,2);
+  const t = IDF.includes(d) ? PLAF.idf : PLAF.hors;
+  const n = Math.max(1, +s.personnes || 1);
+  const row = n <= 5 ? t[n-1] : t[4].map((v,i) => v + (n-5) * t[5][i]);
+  const r = +s.rfr || 0;
+  return r <= row[0] ? 'bleu' : r <= row[1] ? 'jaune' : r <= row[2] ? 'violet' : 'rose';
+}
+const MPR_PAC = {bleu:5000, jaune:4000, violet:3000, rose:0};
+const MPR_CUVE = {bleu:1200, jaune:800, violet:400, rose:0};
+
+function candidateWorks(s, base){
+  const g = base.g, u = base.u, W = [];
+  const H = HEAT[s.chauffage];
+  if (g.roofArea > 0 && u.Ut > .25) {
+    const r = {perdus:[22,35], amenages:[55,90], terrasse:[120,180]}[s.toitType];
+    W.push({id:'toit', iso:true, label: s.toitType === 'perdus' ? 'Isolation des combles perdus (R ≥ 7)' : s.toitType === 'amenages' ? 'Isolation des rampants (R ≥ 6)' : 'Isolation de la toiture-terrasse (R ≥ 4,5)',
+      apply: x => { x.toitIso = 'forte'; }, cost: [g.roofArea*r[0], g.roofArea*r[1]]});
+  }
+  if (u.Um > .5 && g.wallNet > 0) {
+    W.push({id:'murs', iso:true, label:'Isolation des murs par l\'extérieur (ITE, R ≥ 3,7)',
+      apply: x => { x.murIso = 'ite'; }, cost: [g.wallNet*150, g.wallNet*220],
+      note: 'Alternative moins chère : isolation par l\'intérieur, environ 60 à 90 €/m², mais perte de surface.'});
+  }
+  if (g.floorArea > 0 && u.b > 0 && u.Up > .5 && s.plancherType !== 'terre_plein') {
+    W.push({id:'plancher', iso:true, label:'Isolation du plancher bas (sous-sol ou vide sanitaire)',
+      apply: x => { x.plancherIso = 'oui'; }, cost: [g.floorArea*30, g.floorArea*60]});
+  }
+  if (u.Uw >= 2.5) {
+    const nw = Math.max(2, Math.round(g.winArea / 1.7));
+    W.push({id:'fenetres', iso:true, label:`Remplacement des fenêtres, environ ${nw} menuiseries double vitrage`,
+      apply: x => { x.vitrage = 'double_recent'; if (x.menuiserie === 'alu') x.menuiserie = 'pvc'; }, cost: [nw*650, nw*1100]});
+  }
+  if (VENTIL[s.ventil][1] >= .75) {
+    W.push({id:'vmc', label:'VMC simple flux hygroréglable', apply: x => { x.ventil = 'vmc_hygro'; }, cost: [1800, 3500],
+      note: 'Indispensable dès qu\'on isole et change les fenêtres, pour éviter l\'humidité.'});
+  }
+  const fossilBoiler = H[3] && ['fioul','gaz','gpl'].includes(H[1]) && !['gaz_cond','gaz_coll'].includes(s.chauffage);
+  if (fossilBoiler || (s.chauffage === 'gaz_cond' && false)) {
+    const fioul = H[1] === 'fioul';
+    W.push({id:'pac', heat:true, label:'Pompe à chaleur air/eau' + (fioul ? ' + dépose de la cuve à fioul' : ''),
+      apply: x => { x.chauffage = 'pac_air_eau'; }, cost: fioul ? [12000, 19000] : [11000, 17000],
+      mpr: c => MPR_PAC[c] + (fioul ? MPR_CUVE[c] : 0)});
+  } else if (['elec_conv','elec_ray','elec_sol'].includes(s.chauffage)) {
+    W.push({id:'pac', heat:true, label:'Pompe à chaleur air/air (multisplit)', apply: x => { x.chauffage = 'pac_air_air'; }, cost: [6000, 12000],
+      note: 'Pas d\'aide MaPrimeRénov\' pour l\'air/air, prime CEE possible.'});
+  } else if (s.chauffage === 'bois_old') {
+    W.push({id:'pac', heat:true, label:'Poêle à granulés récent', apply: x => { x.chauffage = 'gran_poele'; }, cost: [4000, 7000]});
+  }
+  if (s.thermostat === 'non') {
+    W.push({id:'thermo', label:'Thermostat programmable et robinets thermostatiques', apply: x => { x.thermostat = 'oui'; }, cost: [250, 800]});
+  }
+  const ecsElec = base.ecsMode === 'cumulus' || (base.ecsMode === 'chauffage' && ['fioul','gaz','gpl'].includes(H[1]) && !W.some(w => w.id === 'pac'));
+  if (ecsElec) {
+    W.push({id:'ecs', label:'Chauffe-eau thermodynamique', apply: x => { x.ecs = 'thermo'; }, cost: [2500, 4000]});
+  }
+  return W.map(w => {
+    const x = JSON.parse(JSON.stringify(s)); w.apply(x);
+    const r = simulate(x);
+    return Object.assign(w, {res: r, gainEP: base.epM2 - r.epM2, save: base.cost - r.cost, mid: (w.cost[0] + w.cost[1]) / 2});
+  }).filter(w => w.gainEP > .5).sort((a,b) => b.gainEP - a.gainEP);
+}
+
+function bouquet(s, base, works){
+  const order = [...works.filter(w => w.heat), ...works.filter(w => w.iso), ...works.filter(w => !w.iso && !w.heat)];
+  const chosen = []; const x = JSON.parse(JSON.stringify(s)); let r = base;
+  const bi = LETTERS.indexOf(base.cls);
+  for (const w of order) {
+    const nIso = chosen.filter(c => c.iso).length;
+    const gain = bi - LETTERS.indexOf(r.cls);
+    if (gain >= 2 && nIso >= 2 && !(w.id === 'vmc' && chosen.some(c => c.id === 'fenetres'))) continue;
+    w.apply(x); chosen.push(w); r = simulate(x);
+  }
+  return {chosen, res: r, gain: bi - LETTERS.indexOf(r.cls), nIso: chosen.filter(c => c.iso).length};
+}
+
+
+
+/* ================= icônes ================= */
+const P = {
+  house:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
+  flat:'<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  ruler:'<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
+  wall:'<rect x="3" y="5" width="18" height="14"/><path d="M3 10h18M3 14.5h18M9 5v5M15 5v5M6 10v4.5M12 10v4.5M18 10v4.5M9 14.5V19M15 14.5V19"/>',
+  roof:'<path d="M2 12l10-8 10 8"/><path d="M6 9v11h12V9"/><path d="M6 13h12" stroke-dasharray="2 2"/>',
+  floor:'<path d="M3 15h18"/><path d="M5 15V8h14v7"/><path d="M3 19h18" stroke-dasharray="2 2"/>',
+  win:'<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M12 3v18M5 12h14"/>',
+  flame:'<path d="M12 21c-4 0-6-2.7-6-6 0-4 4-6 4-11 3 2 8 5.5 8 11 0 3.3-2 6-6 6z"/><path d="M12 21c-1.7 0-2.5-1.2-2.5-2.6 0-1.8 2.5-3.4 2.5-3.4s2.5 1.6 2.5 3.4c0 1.4-.8 2.6-2.5 2.6z"/>',
+  bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  fan:'<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-7 4-7 2 0 2 3 0 5M14 12c4 0 7 1 7 4 0 2-3 2-5 0M12 14c0 4-1 7-4 7-2 0-2-3 0-5M10 12c-4 0-7-1-7-4 0-2 3-2 5 0"/>',
+  leaf:'<path d="M5 19c0-9 6-14 15-14 0 9-5 15-14 15"/><path d="M5 19l8-8"/>',
+  drop:'<path d="M12 3s6 6.5 6 11a6 6 0 01-12 0c0-4.5 6-11 6-11z"/>',
+  snow:'<path d="M12 2v20M4 6l16 12M20 6L4 18"/>',
+  wind:'<path d="M3 8h11a3 3 0 10-3-3M3 12h16a3 3 0 11-3 3M3 16h8"/>',
+  user:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14.5c2.4 0 4 1.5 4.5 4"/>',
+  euro:'<path d="M18 6.5A7 7 0 1018 17.5"/><path d="M4 10h9M4 14h9"/>',
+  net:'<circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7"/>',
+  gauge:'<path d="M4 18a8 8 0 1116 0"/><path d="M12 18l4-6"/>',
+  tools:'<path d="M14 6a4 4 0 005 5l-8 8a2 2 0 01-3-3l8-8a4 4 0 00-2-2z"/>',
+  law:'<path d="M12 3v18M5 7h14M7 7l-3 7a3 3 0 006 0zM17 7l-3 7a3 3 0 006 0zM8 21h8"/>'
+};
+const ico = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[k]||P.check}</svg>`;
+
+/* ================= questions ================= */
+const ENERGY_OF = k => k.startsWith('fioul') ? 'fioul' : k.startsWith('gaz') ? 'gaz' : k === 'gpl' ? 'gpl' : k.startsWith('elec') ? 'elec' : k.startsWith('pac') ? 'pac' : k === 'reseau' ? 'reseau' : 'bois';
+const HEAT_HINT = {fioul_old:'Rendement d\'environ 65 %',fioul_std:'Rendement d\'environ 78 %',fioul_cond:'Rendement d\'environ 88 %',gaz_old:'Avant 2000, souvent au sol',gaz_std:'Murale ou au sol, après 2000',gaz_cond:'Chaudière récente, avec évacuation des condensats',gaz_coll:'Immeuble avec chaufferie commune',gpl:'Cuve propane dans le jardin',elec_conv:'Petits radiateurs muraux à grille',elec_ray:'Radiateurs récents, chaleur douce',elec_sol:'Câbles noyés dans la dalle',pac_air_air:'Unités murales, souffle de l\'air chaud',pac_air_eau:'Alimente des radiateurs à eau',pac_geo:'Capteurs enterrés',bois_old:'Foyer fermé avant 2010',bois_new:'Flamme verte 7 étoiles',gran_poele:'Réservoir de granulés',gran_chaud:'Silo et chaudière automatique',reseau:'Chauffage urbain'};
+const SECTIONS = ['Logement','Enveloppe','Équipements','Foyer'];
+const isRoofQ = s => s.type === 'maison' || s.etage === 'dernier';
+const isFloorQ = s => s.type === 'maison' || s.etage === 'rdc';
+
+const Q = [
+  {id:'type', sec:0, title:'De quel type de logement s\'agit-il ?', type:'tiles', key:'type', c2:true, options:[['maison','Maison','Individuelle ou de ville','house'],['appartement','Appartement','En immeuble collectif','flat']]},
+  {id:'mitoyen', sec:0, title:'La maison est-elle mitoyenne ?', sub:'Un mur partagé avec un voisin perd moins de chaleur.', type:'tiles', key:'mitoyen', show:s => s.type === 'maison', options:[['0','Non, isolée','4 façades à l\'air libre','house'],['1','Mitoyenne d\'un côté','3 façades exposées','house'],['2','Mitoyenne des deux côtés','Maison de ville en bande','house']]},
+  {id:'etage', sec:0, title:'À quel étage se trouve l\'appartement ?', type:'tiles', key:'etage', show:s => s.type === 'appartement', options:[['rdc','Rez-de-chaussée','Plancher au-dessus du sol ou d\'une cave','floor'],['inter','Étage intermédiaire','Logements au-dessus et en dessous','flat'],['dernier','Dernier étage','Toiture au-dessus','roof']]},
+  {id:'lieu', sec:0, title:'Où se trouve le logement ?', sub:'Le code postal donne la zone climatique, qui change beaucoup le besoin de chauffage.', type:'form', fields:[
+    {key:'cp', kind:'text', label:'Code postal', ph:'ex. 37500', mode:'numeric', hint:s => /^\d{5}$/.test(String(s.cp)) ? `Zone climatique ${zoneOf(s.cp)}` : 'Cinq chiffres'},
+    {key:'altitude', kind:'seg', label:'Altitude', options:[['lt400','Moins de 400 m'],['400_800','400 à 800 m'],['gt800','Plus de 800 m']]}
+  ], valid:s => /^\d{5}$/.test(String(s.cp))},
+  {id:'periode', sec:0, title:'Quand a-t-il été construit ?', sub:'L\'année indique le niveau d\'isolation d\'origine, d\'après les réglementations thermiques successives.', type:'tiles', key:'periode', options:[['p1','Avant 1948','Bâti ancien, murs épais','cal'],['p2','1948 – 1974','Avant toute réglementation thermique','cal'],['p3','1975 – 1981','Première réglementation thermique','cal'],['p4','1982 – 1988','RT 1982','cal'],['p5','1989 – 2000','RT 1988','cal'],['p6','2001 – 2012','RT 2000 et RT 2005','cal'],['p7','Après 2012','RT 2012 ou RE 2020','cal']]},
+  {id:'dims', sec:0, title:'Quelle est sa taille ?', type:'form', fields:[
+    {key:'surface', kind:'range', label:'Surface habitable', min:15, max:300, step:1, unit:'m²'},
+    {key:'niveaux', kind:'stepper', label:'Niveaux habitables', min:1, max:4, show:s => s.type === 'maison'},
+    {key:'hsp', kind:'seg', label:'Hauteur sous plafond', options:[['2.5','Standard, 2,50 m'],['2.8','Haute, 2,80 m'],['3.2','Plus de 3 m']]}
+  ], valid:s => +s.surface >= 10},
+  {id:'murMat', sec:1, title:'En quoi sont les murs ?', type:'tiles', key:'murMat', options:Object.entries(MAT).map(([k,v]) => [k, v[0], {pierre:'Murs anciens de 50 cm et plus',brique:'Ancienne, pleine',torchis:'Colombages',parpaing:'Le plus courant après 1950',beton:'Immeubles, années 60-70',bois:'Maison bois',brique_creuse:'Constructions récentes'}[k], 'wall'])},
+  {id:'murIso', sec:1, title:'Les murs sont-ils isolés ?', sub:'Regarde l\'épaisseur au niveau d\'une fenêtre ou d\'une prise sur un mur extérieur.', type:'tiles', key:'murIso', options:[['non','Non isolés','Mur nu à l\'intérieur','wall'],['faible','Isolation ancienne','Moins de 5 cm, polystyrène fin','wall'],['iti','Isolés par l\'intérieur','10 cm ou plus derrière le placo','wall'],['ite','Isolés par l\'extérieur','Enduit sur isolant','wall'],['inconnu','Je ne sais pas','On prend l\'isolation type de l\'année','wall']]},
+  {id:'toitType', sec:1, title:'Quel est le type de toiture ?', type:'tiles', key:'toitType', show:isRoofQ, options:[['perdus','Combles perdus','Grenier non habitable','roof'],['amenages','Combles aménagés','Pièces sous les rampants','roof'],['terrasse','Toit-terrasse','Toit plat','roof']]},
+  {id:'toitIso', sec:1, title:'Comment est isolée la toiture ?', sub:'C\'est souvent le premier poste de pertes dans une maison.', type:'tiles', key:'toitIso', show:isRoofQ, options:[['non','Pas isolée','On voit les tuiles ou le plancher nu','roof'],['faible','Faiblement','Moins de 10 cm, laine tassée','roof'],['moyenne','Moyennement','10 à 20 cm','roof'],['forte','Bien isolée','Plus de 25 cm, récent','roof'],['inconnu','Je ne sais pas','On prend l\'isolation type de l\'année','roof']]},
+  {id:'plancherType', sec:1, title:'Qu\'y a-t-il sous le logement ?', type:'tiles', key:'plancherType', show:isFloorQ, options:[['vide_sanitaire','Vide sanitaire','Espace bas sous la maison','floor'],['sous_sol','Sous-sol ou garage','Non chauffé','floor'],['terre_plein','Dalle sur terre-plein','Directement sur le sol','floor'],['local_chauffe','Un logement chauffé','Voisin du dessous','flat']]},
+  {id:'plancherIso', sec:1, title:'Le plancher bas est-il isolé ?', sub:'Visible depuis le sous-sol ou le vide sanitaire : panneaux ou flocage au plafond.', type:'tiles', key:'plancherIso', show:s => isFloorQ(s) && s.plancherType !== 'local_chauffe', options:[['non','Non isolé','Béton ou hourdis nus','floor'],['oui','Isolé','Panneaux ou flocage','floor'],['inconnu','Je ne sais pas','On prend l\'isolation type de l\'année','floor']]},
+  {id:'vitrage', sec:1, title:'Quelles fenêtres ?', type:'tiles', key:'vitrage', options:[['simple','Simple vitrage','Une seule vitre','win'],['double_ancien','Double vitrage ancien','Posé avant 2000','win'],['double_recent','Double vitrage récent','Après 2000, souvent PVC','win'],['triple','Triple vitrage','Menuiseries performantes','win']]},
+  {id:'menuis', sec:1, title:'Et les menuiseries ?', type:'form', fields:[
+    {key:'menuiserie', kind:'seg', label:'Matériau', options:[['bois','Bois'],['pvc','PVC'],['alu','Aluminium']]},
+    {key:'partVitree', kind:'seg', label:'Surface vitrée', options:[['.12','Peu de fenêtres'],['.16','Normale'],['.22','Très vitrée, baies']]}
+  ]},
+  {id:'energie', sec:2, title:'Comment est chauffé le logement ?', sub:'Le chauffage principal, celui qui chauffe la plus grande partie de la maison.', type:'tiles', key:'_energie', options:[['fioul','Fioul','Chaudière','flame'],['gaz','Gaz de ville','Chaudière','flame'],['gpl','Propane','Cuve GPL','flame'],['elec','Radiateurs électriques','Convecteurs, inertie','bolt'],['pac','Pompe à chaleur','Air/air, air/eau, géothermie','fan'],['bois','Bois ou granulés','Poêle, insert, chaudière','leaf'],['reseau','Réseau de chaleur','Chauffage urbain','net']]},
+  {id:'chauffage', sec:2, title:'Quel équipement exactement ?', type:'tiles', key:'chauffage', show:s => Object.keys(HEAT).filter(k => ENERGY_OF(k) === s._energie).length > 1, opts:s => Object.keys(HEAT).filter(k => ENERGY_OF(k) === s._energie).map(k => [k, HEAT[k][0], HEAT_HINT[k], ENERGY_OF(k) === 'elec' ? 'bolt' : ENERGY_OF(k) === 'pac' ? 'fan' : ENERGY_OF(k) === 'bois' ? 'leaf' : 'flame'])},
+  {id:'confort', sec:2, title:'Quelques précisions sur le chauffage', type:'form', fields:[
+    {key:'appoint', kind:'seg', label:'Chauffage d\'appoint', options:Object.entries(APPOINT).map(([k,v]) => [k, v[0]]), hint:() => 'Un appoint couvre environ 30 % du chauffage dans le calcul.'},
+    {key:'thermostat', kind:'seg', label:'Thermostat programmable', options:[['oui','Oui'],['non','Non']]},
+    {key:'clim', kind:'seg', label:'Climatisation utilisée l\'été', options:[['oui','Oui'],['non','Non']]}
+  ]},
+  {id:'ecs', sec:2, title:'Comment est produite l\'eau chaude ?', type:'tiles', key:'ecs', opts:s => [['chauffage','Par le chauffage','Chaudière ou PAC','flame'],['cumulus','Ballon électrique','Cumulus classique','bolt'],['thermo','Chauffe-eau thermodynamique','Ballon avec pompe à chaleur','fan'],['gaz_inst','Chauffe-eau gaz','Instantané','flame'],['solaire','Chauffe-eau solaire','Capteurs sur le toit','drop']].filter(o => o[0] !== 'chauffage' || HEAT[s.chauffage][3])},
+  {id:'ventil', sec:2, title:'Comment l\'air est-il renouvelé ?', sub:'Cherche des bouches d\'extraction au plafond de la cuisine et de la salle de bains.', type:'tiles', key:'ventil', options:[['ouverture','Aucune ventilation','On ouvre les fenêtres','wind'],['grilles','Grilles d\'aération','Entrées d\'air naturelles','wind'],['vmc_auto','VMC simple flux','Autoréglable, débit fixe','fan'],['vmc_hygro','VMC hygroréglable','Débit selon l\'humidité','fan'],['vmc_df','VMC double flux','Récupère la chaleur','fan']]},
+  {id:'foyer', sec:3, title:'Pour estimer les aides', sub:'MaPrimeRénov\' dépend du revenu fiscal de référence et de la taille du foyer.', type:'form', fields:[
+    {key:'statut', kind:'seg', label:'Le client est', options:[['occupant','Propriétaire occupant'],['bailleur','Propriétaire bailleur'],['locataire','Locataire']]},
+    {key:'personnes', kind:'stepper', label:'Personnes dans le foyer', min:1, max:10},
+    {key:'rfr', kind:'text', mode:'numeric', label:'Revenu fiscal de référence (€)', ph:'ex. 32000', hint:s => `Profil ${CAT[category(s)][0].toLowerCase()} · MaPrimeRénov' ${category(s)}`}
+  ]},
+  {id:'client', sec:3, title:'Pour qui est ce bilan ?', sub:'Facultatif. Le nom et l\'adresse apparaissent en tête de la synthèse.', type:'form', fields:[
+    {key:'client', kind:'text', label:'Nom du client', ph:'ex. M. et Mme Martin'},
+    {key:'adresse', kind:'text', label:'Adresse', ph:'ex. 12 rue des Lilas, Chinon'}
+  ]}
+];
+
+/* ================= état de navigation ================= */
+S._energie = ENERGY_OF(S.chauffage);
+let mode = 'intro'; // intro | q | calc | report
+let qi = 0, dir = 1, lastCls = null;
+const $ = id => document.getElementById(id);
+const visible = () => Q.filter(q => !q.show || q.show(S));
+const esc = v => String(v ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = (n, d=0) => (Math.round(n * 10**d) / 10**d).toLocaleString('fr-FR', {maximumFractionDigits:d});
+const eur = n => fmt(Math.round(n/10)*10) + ' €';
+const bgL = (l, ges) => `background:${ges ? GES_COL[l] : DPE_COL[l]}${ges && 'DEFG'.includes(l) ? ';color:#fff' : ''}`;
+
+function updatePill(){
+  const r = simulate(S);
+  const lt = $('pillLt');
+  lt.textContent = r.cls; lt.style.background = DPE_COL[r.cls];
+  $('pillKwh').textContent = fmt(r.epM2);
+  if (lastCls && lastCls !== r.cls) { lt.classList.remove('pop'); void lt.offsetWidth; lt.classList.add('pop'); }
+  lastCls = r.cls;
+}
+function setKey(k, v){
+  S[k] = v; isExample = false;
+  if (k === '_energie') {
+    const list = Object.keys(HEAT).filter(h => ENERGY_OF(h) === v);
+    if (!list.includes(S.chauffage)) S.chauffage = list[0];
+    if (S.ecs === 'chauffage' && !HEAT[S.chauffage][3]) S.ecs = 'cumulus';
+  }
+  if (k === 'chauffage' && S.ecs === 'chauffage' && !HEAT[v][3]) S.ecs = 'cumulus';
+  updatePill();
+}
+
+/* ================= écrans ================= */
+function intro(){
+  $('top').hidden = true; $('bottom').hidden = true;
+  $('shell').classList.remove('wide');
+  $('view').innerHTML = `<section class="hero q in">
+    <span class="eyebrow">Bilan énergétique en 5 minutes</span>
+    <h1>Quelle étiquette pour ce logement ?</h1>
+    <p class="lead">Vingt questions simples, posées chez le client, pour estimer son DPE, voir où part la chaleur et chiffrer les travaux qui le font gagner des classes, aides 2026 comprises.</p>
+    <div class="arrows" aria-hidden="true">${LETTERS.map((l,i) => `<div class="arr" style="width:${40+i*10}%;${bgL(l)}">${l}</div>`).join('')}</div>
+    <div class="how">
+      <div><b>Le logement</b>Type, année, surface, murs, toit, sol, fenêtres.</div>
+      <div><b>Les équipements</b>Chauffage, eau chaude, ventilation.</div>
+      <div><b>Le bilan</b>Étiquette, diagnostic, plan de travaux, aides et reste à charge.</div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" style="flex:0 1 auto" id="start">Commencer une simulation</button>
+      <button class="btn" id="demo">Voir un exemple de bilan</button>
+    </div>
+  </section>`;
+  $('start').onclick = () => { S = Object.assign(JSON.parse(JSON.stringify(EXAMPLE)), {cp:'', rfr:'', client:'', adresse:''}); S._energie = ENERGY_OF(S.chauffage); isExample = false; qi = 0; dir = 1; mode = 'q'; render(); };
+  $('demo').onclick = () => { S = JSON.parse(JSON.stringify(EXAMPLE)); S._energie = ENERGY_OF(S.chauffage); isExample = true; mode = 'report'; render(); };
+}
+
+function fieldHTML(f){
+  if (f.show && !f.show(S)) return '';
+  const v = S[f.key];
+  const hint = f.hint ? `<span class="hint" data-hint="${f.key}">${f.hint(S)}</span>` : '';
+  if (f.kind === 'seg') return `<div class="f"><span class="lab">${f.label}</span><div class="seg" role="group">${f.options.map(([k,l]) => `<button type="button" data-set="${f.key}" data-v="${k}" aria-pressed="${String(v) === k}">${l}</button>`).join('')}</div>${hint}</div>`;
+  if (f.kind === 'stepper') return `<div class="f"><span class="lab">${f.label}</span><div class="stepper"><button type="button" data-step="${f.key}" data-d="-1" aria-label="Moins">−</button><b class="mono" id="st-${f.key}">${v || f.min}</b><button type="button" data-step="${f.key}" data-d="1" aria-label="Plus">+</button></div>${hint}</div>`;
+  if (f.kind === 'range') return `<div class="f"><label for="in-${f.key}">${f.label}</label><div class="rangeval"><b class="mono" id="rv-${f.key}">${v}</b><span class="muted">${f.unit}</span></div><input type="range" id="in-${f.key}" data-in="${f.key}" min="${f.min}" max="${f.max}" step="${f.step}" value="${v}">${hint}</div>`;
+  return `<div class="f"><label for="in-${f.key}">${f.label}</label><input type="text" id="in-${f.key}" data-in="${f.key}" ${f.mode ? `inputmode="${f.mode}"` : ''} placeholder="${f.ph || ''}" value="${esc(v)}" autocomplete="off">${hint}</div>`;
+}
+
+function question(){
+  const vis = visible();
+  qi = Math.max(0, Math.min(qi, vis.length - 1));
+  const q = vis[qi];
+  $('top').hidden = false; $('bottom').hidden = false;
+  $('shell').classList.remove('wide');
+  $('bar').style.width = `${100 * (qi + 1) / (vis.length + 1)}%`;
+  $('sections').innerHTML = SECTIONS.map((s,i) => i === q.sec ? `<b>${s}</b>` : `<span>${s}</span>`).join('<span aria-hidden="true">·</span>');
+  let body;
+  if (q.type === 'tiles') {
+    const opts = q.opts ? q.opts(S) : q.options;
+    body = `<div class="tiles${q.c2 ? ' c2' : ''}">${opts.map(([k,l,h,ic]) => `<button type="button" class="tile${ic ? '' : ' noic'}" data-tile="${q.key}" data-v="${k}" aria-pressed="${String(S[q.key]) === k}">${ic ? `<span class="ic">${ico(ic)}</span>` : ''}<b>${l}</b>${h ? `<small>${h}</small>` : ''}</button>`).join('')}</div>`;
+  } else body = `<div class="form">${q.fields.map(fieldHTML).join('')}</div>`;
+  $('view').innerHTML = `<section class="q ${dir > 0 ? 'in' : 'back'}"><div><span class="eyebrow">Question ${qi + 1} sur ${vis.length}</span><h2>${q.title}</h2>${q.sub ? `<p class="sub">${q.sub}</p>` : ''}</div>${body}</section>`;
+  const last = qi === vis.length - 1;
+  const ok = !q.valid || q.valid(S);
+  $('bottomIn').innerHTML = `<button class="btn" id="prev">Retour</button><button class="btn primary" id="next" ${ok ? '' : 'disabled'}>${last ? 'Calculer le bilan' : 'Continuer'}</button>`;
+  $('prev').onclick = () => { if (qi === 0) { mode = 'intro'; render(); } else { qi--; dir = -1; render(); } };
+  $('next').onclick = next;
+  updatePill();
+  window.scrollTo({top:0});
+}
+function next(){
+  const vis = visible();
+  if (qi >= vis.length - 1) { mode = 'calc'; render(); return; }
+  qi++; dir = 1; render();
+}
+function refreshValid(){
+  const q = visible()[qi]; if (!q) return;
+  const ok = !q.valid || q.valid(S);
+  const b = $('next'); if (b) b.disabled = !ok;
+  document.querySelectorAll('[data-hint]').forEach(h => { const f = q.fields && q.fields.find(x => x.key === h.dataset.hint); if (f) h.innerHTML = f.hint(S); });
+}
+
+function calc(){
+  $('bottom').hidden = true;
+  $('view').innerHTML = `<section class="calc q in"><div style="display:grid;gap:14px;justify-items:center"><div class="spin" aria-hidden="true"></div><h2>Calcul du bilan</h2><p class="muted">Déperditions, consommations, scénarios de travaux et aides…</p></div></section>`;
+  setTimeout(() => { mode = 'report'; render(); }, matchMedia('(prefers-reduced-motion:reduce)').matches ? 50 : 1100);
+}
+
+/* ================= rapport ================= */
+function heat(share, max){
+  const t = Math.min(1, share / max);
+  const a = [246,196,83], b = [215,34,31];
+  return `rgb(${a.map((x,i) => Math.round(x + (b[i]-x) * t)).join(',')})`;
+}
+function houseSVG(r){
+  const tot = Object.values(r.dep).reduce((a,b)=>a+b,0);
+  const p = k => (r.dep[k] || 0) / tot;
+  const max = Math.max(...Object.keys(r.dep).map(p));
+  const c = k => heat(p(k), max);
+  const pc = k => Math.round(p(k) * 100) + ' %';
+  const apt = S.type === 'appartement';
+  const roof = !apt || S.etage === 'dernier', floor = !apt || S.etage === 'rdc';
+  return `<svg class="house" viewBox="0 0 400 300" role="img" aria-label="Répartition des pertes de chaleur">
+    <g fill="none" stroke-linejoin="round">
+      ${roof ? `<path d="M60 120 L200 40 L340 120 Z" fill="${c('Toiture')}" stroke="var(--ink)" stroke-width="2"/>` : `<rect x="80" y="106" width="240" height="14" fill="var(--line)"/>`}
+      <rect x="80" y="120" width="240" height="120" fill="${c('Murs')}" stroke="var(--ink)" stroke-width="2"/>
+      <rect x="104" y="146" width="56" height="48" fill="${c('Fenêtres')}" stroke="var(--ink)" stroke-width="2"/>
+      <path d="M132 146v48M104 170h56" stroke="var(--ink)" stroke-width="1.5"/>
+      <rect x="240" y="176" width="40" height="64" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
+      ${floor ? `<rect x="80" y="240" width="240" height="14" fill="${c('Plancher bas')}" stroke="var(--ink)" stroke-width="2"/>` : ''}
+      <path d="M50 ${floor ? 262 : 248} H350" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 4"/>
+      <circle cx="80" cy="120" r="7" fill="${c('Ponts thermiques')}" stroke="var(--ink)" stroke-width="1.5"/>
+      <circle cx="320" cy="240" r="7" fill="${c('Ponts thermiques')}" stroke="var(--ink)" stroke-width="1.5"/>
+      <path d="M262 150c18-10 30 6 48-4M262 160c18-10 30 6 48-4" stroke="${c('Air renouvelé et fuites')}" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    <g font-family="JetBrains Mono, monospace" font-size="14" font-weight="500" fill="var(--ink)" text-anchor="middle">
+      ${roof ? `<text x="200" y="98">Toit ${pc('Toiture')}</text>` : ''}
+      <text x="132" y="216">Fenêtres</text><text x="132" y="232">${pc('Fenêtres')}</text>
+      <text x="360" y="176">Murs</text><text x="360" y="192">${pc('Murs')}</text>
+      <text x="286" y="138">Air ${pc('Air renouvelé et fuites')}</text>
+      ${floor ? `<text x="200" y="284">Plancher ${pc('Plancher bas')}</text>` : ''}
+      <text x="40" y="104">Ponts</text><text x="40" y="120">${pc('Ponts thermiques')}</text>
+    </g></svg>`;
+}
+function scale(val, cls, ges){
+  const T = ges ? GES_T : EP_T;
+  return `<div class="scale">${LETTERS.map((l,i) => {
+    const th = i === 0 ? `≤ ${T[0]}` : i === 6 ? `> ${T[5]}` : `${T[i-1]+1}–${T[i]}`;
+    return `<div class="srow${l === cls ? ' on' : ''}"><div class="sbar${ges && 'DEFG'.includes(l) ? ' light' : ''}" style="width:${46 + i*7}%;${bgL(l, ges)}"><span>${l}</span><small>${th}</small></div>${l === cls ? `<span class="me mono">${fmt(val)}</span>` : ''}</div>`;
+  }).join('')}</div>`;
+}
+function verdictText(r){
+  const kind = S.type === 'maison' ? 'Cette maison' : 'Cet appartement';
+  const head = {G:'est une passoire énergétique, classée G.',F:'est une passoire énergétique, classée F.',E:'est énergivore, classée E.',D:'se situe dans la moyenne française, classée D.',C:'est plutôt performante, classée C.',B:'est performante, classée B.',A:'est très performante, classée A.'}[r.cls];
+  const ratio = r.epM2 / 70;
+  return `${kind} <b>${head}</b> Elle consomme environ <b>${fmt(r.epM2)} kWh/m²/an</b>${ratio > 1.8 ? `, ${fmt(ratio,1)} fois plus qu'un logement classé A` : ''}, pour une facture estimée à <b>${eur(r.cost)} par an</b>, soit ${eur(r.cost/12)} par mois.`;
+}
+function diagPoints(r){
+  const tot = Object.values(r.dep).reduce((a,b)=>a+b,0);
+  const top = Object.entries(r.dep).sort((a,b) => b[1]-a[1]);
+  const [k1, v1] = top[0], [k2, v2] = top[1];
+  const H = HEAT[S.chauffage];
+  const out = [];
+  const wallTxt = {non:'non isolés', faible:'peu isolés', iti:'isolés par l\'intérieur', ite:'isolés par l\'extérieur', inconnu:'d\'isolation inconnue'}[S.murIso];
+  const detail = {
+    'Murs': `Les murs en ${MAT[S.murMat][0].toLowerCase()} sont ${wallTxt}.`,
+    'Toiture': 'La toiture est le chemin le plus direct pour la chaleur, qui monte.',
+    'Plancher bas': 'Le sol froid crée aussi un inconfort aux pieds.',
+    'Fenêtres': `${VITRAGE[S.vitrage][0]} : sensation de paroi froide près des vitres.`,
+    'Air renouvelé et fuites': 'L\'air chauffé s\'échappe par les fuites et l\'aération non maîtrisée.',
+    'Ponts thermiques': 'Les jonctions entre murs, planchers et toiture laissent fuir la chaleur.'
+  };
+  out.push(['gauge', `<b>${k1} : ${Math.round(100*v1/tot)} % des pertes de chaleur.</b> ${detail[k1]} Viennent ensuite ${k2.toLowerCase()} (${Math.round(100*v2/tot)} %).`]);
+  let heatTxt;
+  if (H[2] > 1.5) heatTxt = `<b>${H[0]}.</b> Elle produit environ ${fmt(H[2],1)} kWh de chaleur pour 1 kWh d'électricité : c'est déjà un système efficace.`;
+  else if (H[1] === 'elec') heatTxt = `<b>${H[0]}.</b> Chauffage électrique direct : 1 kWh payé donne 1 kWh de chaleur, au prix fort de l'électricité. Une pompe à chaleur divise cette consommation par 2,5 à 3.`;
+  else if (H[2] < .75) heatTxt = `<b>${H[0]}.</b> Rendement d'environ ${Math.round(H[2]*100)} % : près d'un tiers de l'énergie achetée est perdue avant de chauffer la maison.`;
+  else heatTxt = `<b>${H[0]}.</b> Rendement d'environ ${Math.round(Math.min(H[2],1)*100)} %.`;
+  out.push(['flame', heatTxt + (['fioul','gpl'].includes(H[1]) ? ' Énergie fossile chère et fortement émettrice.' : '')]);
+  const share = r.costUse.chauffage / r.cost;
+  out.push(['euro', `<b>Le chauffage pèse ${Math.round(share*100)} % de la facture</b>, soit ${eur(r.costUse.chauffage)} par an. L'eau chaude représente ${eur(r.costUse.ecs)}.`]);
+  if (VENTIL[S.ventil][1] >= .75) out.push(['wind', '<b>Pas de ventilation mécanique.</b> À prévoir dès qu\'on isole, pour éviter l\'humidité et les moisissures.']);
+  return out;
+}
+function regulationCards(cls){
+  const i = LETTERS.indexOf(cls);
+  return [['2025','G','Location interdite aux logements G'],['2028','F','Interdiction étendue aux logements F'],['2034','E','Interdiction étendue aux logements E'],['Vente','E F G','Audit énergétique obligatoire']]
+    .map(([y,l,t]) => { const hit = y === 'Vente' ? i >= 4 : LETTERS.indexOf(l) <= i; return `<div class="tl${hit ? ' hit' : ''}"><b>${y}</b><span>${t}</span>${hit ? '<span><b style="font-size:13px">Concerne ce logement</b></span>' : ''}</div>`; }).join('');
+}
+
+function report(){
+  $('top').hidden = false; $('bottom').hidden = true;
+  $('shell').classList.add('wide');
+  $('bar').style.width = '100%';
+  $('sections').innerHTML = '<b>Bilan</b>';
+  updatePill();
+  const r = simulate(S);
+  const works = candidateWorks(S, r);
+  const cat = category(S);
+  const bq = bouquet(S, r, works);
+  const eligA = ['E','F','G'].includes(r.cls) && bq.gain >= 2 && bq.nIso >= 2;
+  const costTTC = bq.chosen.reduce((a,w) => a + w.mid, 0);
+  const costHT = costTTC / 1.055;
+  const taux = {bleu:.8, jaune:.6, violet:.45, rose:.1}[cat];
+  const plaf = bq.gain >= 3 ? 40000 : 30000;
+  const ecr = {bleu:1, jaune:.9, violet:.8, rose:.5}[cat];
+  const aide = eligA ? Math.min(taux * Math.min(costHT, plaf), ecr * costTTC) : bq.chosen.reduce((a,w) => a + (w.mpr ? w.mpr(cat) : 0), 0);
+  const reste = Math.max(0, costTTC - aide);
+  const save = r.cost - bq.res.cost;
+  const months = eligA ? 240 : 180;
+  const mens = reste / months;
+  const net = mens - save / 12;
+  const today = new Date().toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+  const H = HEAT[S.chauffage];
+
+  // feuille de route cumulative
+  const x = JSON.parse(JSON.stringify(S)); let prev = r;
+  const steps = bq.chosen.map(w => { w.apply(x); const after = simulate(x); const st = {w, before: prev, after}; prev = after; return st; });
+  const others = works.filter(w => !bq.chosen.includes(w));
+
+  const pts = diagPoints(r);
+  const depTot = Object.values(r.dep).reduce((a,b)=>a+b,0);
+  const legend = Object.entries(r.dep).sort((a,b) => b[1]-a[1]).map(([k,v]) => `<div class="lrow"><i style="background:${heat(v/depTot, Math.max(...Object.values(r.dep))/depTot)}"></i><span>${k}</span><b>${Math.round(100*v/depTot)} %</b></div>`).join('');
+
+  $('view').innerHTML = `<div class="report q in">
+  <section class="sheet">
+    <div class="cover">
+      <div style="display:grid;gap:14px">
+        <span class="eyebrow">Bilan énergétique · ${today}${isExample ? ' · exemple' : ''}</span>
+        <h1>${S.client ? esc(S.client) : (S.type === 'maison' ? 'Votre maison' : 'Votre appartement')}</h1>
+        <p class="muted">${S.adresse ? esc(S.adresse) + ' · ' : ''}${S.type === 'maison' ? 'Maison' : 'Appartement'} de ${fmt(+S.surface)} m², construit ${PERIODS.find(p => p[0] === S.periode)[1].toLowerCase().replace('avant','avant').replace('après','après')}, zone climatique ${r.zone}</p>
+        <p class="verdict">${verdictText(r)}</p>
+      </div>
+      <div style="display:grid;gap:14px">
+        <div><span class="eyebrow" style="color:var(--muted)">Énergie · kWh/m²/an</span>${scale(r.epM2, r.le, false)}</div>
+        <div><span class="eyebrow" style="color:var(--muted)">Climat · kg CO₂/m²/an</span>${scale(r.gesM2, r.lg, true)}</div>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><b class="mono">${eur(r.cost)}</b><span>de facture par an, hors abonnements</span></div>
+      <div class="kpi"><b class="mono">${fmt(r.efTot)}</b><span>kWh consommés par an</span></div>
+      <div class="kpi"><b class="mono">${fmt(r.gesTot/1000,1)} t</b><span>de CO₂ par an</span></div>
+      <div class="kpi"><b class="mono">${eur(r.cost/12)}</b><span>par mois en moyenne</span></div>
+    </div>
+  </section>
+
+  <section class="sheet">
+    <div class="sec-h"><span class="eyebrow">Diagnostic</span><h2>Ce qui fait la note</h2></div>
+    <div class="diag">${houseSVG(r)}<div class="legend">${legend}<p class="small">Part de chaque poste dans les pertes de chaleur. Plus la couleur est rouge, plus le poste pèse.</p></div></div>
+    <ul class="points">${pts.map(([ic,t]) => `<li><span class="n">${ico(ic)}</span><p>${t}</p></li>`).join('')}</ul>
+  </section>
+
+  <section class="sheet">
+    <div class="sec-h"><span class="eyebrow">Réglementation</span><h2>Ce que la loi impose</h2></div>
+    <div class="timeline">${regulationCards(r.cls)}</div>
+    <p class="small">${LETTERS.indexOf(r.cls) >= 5 ? 'Passoire énergétique : les loyers sont gelés depuis août 2022, et la décote à la revente atteint souvent 5 à 15 % face à un logement classé D.' : LETTERS.indexOf(r.cls) <= 3 ? 'Aucune contrainte de location liée au DPE pour ce logement.' : 'Un logement classé E reste louable jusqu\'en 2034.'}</p>
+  </section>
+
+  ${steps.length ? `<section class="sheet">
+    <div class="sec-h"><span class="eyebrow">Plan de travaux conseillé</span><h2>De ${r.cls} à ${bq.res.cls} en ${steps.length} étape${steps.length > 1 ? 's' : ''}</h2>
+      <p class="muted">Ordre conseillé : le changement de chauffage se dimensionne mieux une fois le logement isolé, mais tout peut être réalisé en un seul chantier.</p></div>
+    <div class="road">${steps.map(st => `<div class="stepc"><span class="lt" style="${bgL(st.after.cls)}">${st.after.cls}</span><div>
+      <h3>${st.w.label}</h3>
+      <div class="facts"><span>Coût <b>${eur(st.w.cost[0])} – ${eur(st.w.cost[1])}</b></span><span>Économie <b>${eur(st.before.cost - st.after.cost)}/an</b></span><span><b>${fmt(st.before.epM2)} → ${fmt(st.after.epM2)}</b> kWh/m²</span></div>
+      ${st.w.note ? `<p class="small" style="margin-top:4px">${st.w.note}</p>` : ''}</div></div>`).join('')}</div>
+    <div class="ba">
+      <div class="col"><span class="eyebrow" style="color:var(--muted)">Aujourd'hui</span><span class="big" style="${bgL(r.cls)}">${r.cls}</span>
+        <dl><dt>Consommation</dt><dd>${fmt(r.epM2)} kWh/m²</dd><dt>Facture</dt><dd>${eur(r.cost)}/an</dd><dt>CO₂</dt><dd>${fmt(r.gesTot/1000,1)} t/an</dd></dl></div>
+      <div class="mid" aria-hidden="true">→</div>
+      <div class="col after"><span class="eyebrow">Après travaux</span><span class="big" style="${bgL(bq.res.cls)}">${bq.res.cls}</span>
+        <dl><dt>Consommation</dt><dd>${fmt(bq.res.epM2)} kWh/m²</dd><dt>Facture</dt><dd>${eur(bq.res.cost)}/an</dd><dt>CO₂</dt><dd>${fmt(bq.res.gesTot/1000,1)} t/an</dd></dl></div>
+    </div>
+    ${others.length ? `<div class="more"><span class="eyebrow" style="color:var(--muted)">Pour aller plus loin</span>${others.map(w => `<div><span>${w.label}</span><span class="mono muted">${eur(w.cost[0])} – ${eur(w.cost[1])} · −${eur(w.save)}/an</span></div>`).join('')}</div>` : ''}
+  </section>
+
+  <section class="sheet">
+    <div class="sec-h"><span class="eyebrow">Financement · profil ${CAT[cat][0].toLowerCase()}</span><h2>${eligA ? 'Éligible à MaPrimeRénov\' rénovation d\'ampleur' : 'Aides mobilisables'}</h2></div>
+    <div class="fin">
+      <div class="stack" aria-hidden="true">
+        <div style="flex:${Math.max(aide,1)};background:var(--accent);color:var(--accent-ink)">Aides ${eur(aide)}</div>
+        <div style="flex:${Math.max(reste,1)};background:var(--line);color:var(--ink)">Reste ${eur(reste)}</div>
+      </div>
+      <div class="finrows">
+        <span>Coût total estimé des travaux (TTC, TVA 5,5 %)</span><span>${eur(costTTC)}</span>
+        <span>${eligA ? `MaPrimeRénov' rénovation d'ampleur, ${Math.round(taux*100)} % du HT` : 'MaPrimeRénov\' par geste'}</span><span>− ${eur(aide)}</span>
+        <span class="tot">Reste à charge, avant prime CEE</span><span class="tot">${eur(reste)}</span>
+      </div>
+      <div class="callout"><span>Avec un éco-prêt à taux zéro sur ${months/12} ans</span><b>${eur(mens)}/mois de mensualité</b>
+        <span>${net <= 0 ? `Les économies d'énergie (${eur(save/12)}/mois) couvrent entièrement la mensualité.` : `Les économies d'énergie (${eur(save/12)}/mois) en couvrent ${Math.round(100*save/12/mens)} % : effort réel d'environ ${eur(net)} par mois.`}</span></div>
+      <p class="small">${eligA
+        ? `Conditions remplies : logement classé ${r.cls}, gain de ${bq.gain} classes, ${bq.nIso} gestes d'isolation. Aide calculée sur ${eur(Math.min(costHT, plaf))} HT (plafond ${fmt(plaf)} € HT), dans la limite de ${Math.round(ecr*100)} % du coût TTC. Un Accompagnateur Rénov' est obligatoire ; sa mission est en grande partie prise en charge. Éco-PTZ jusqu'à 50 000 € sur 20 ans.`
+        : !['E','F','G'].includes(r.cls) ? 'La rénovation d\'ampleur est réservée aux logements classés E, F ou G : seules les aides par geste s\'appliquent ici.'
+        : bq.gain < 2 ? 'Ce plan ne fait pas gagner 2 classes : la rénovation d\'ampleur n\'est pas accessible.' : 'Il faut au moins 2 gestes d\'isolation pour la rénovation d\'ampleur.'}
+        Une prime CEE peut s'ajouter selon le fournisseur d'énergie. Barème MaPrimeRénov' au 1er septembre 2026, à confirmer sur maprimerenov.gouv.fr.</p>
+    </div>
+  </section>` : `<section class="sheet"><div class="sec-h"><span class="eyebrow">Plan de travaux</span><h2>Aucun travail prioritaire</h2></div><p>Le logement est déjà performant. Un entretien régulier des équipements suffit.</p></section>`}
+
+  <section class="sheet">
+    <div class="sec-h"><span class="eyebrow">Prochaines étapes</span><h2>Pour avancer</h2></div>
+    <ul class="points">
+      <li><span class="n">${ico('check')}</span><p><b>Visite technique</b> pour mesurer les surfaces, vérifier l'isolation existante et dimensionner le chauffage.</p></li>
+      <li><span class="n">${ico('law')}</span><p><b>Audit énergétique</b> par un professionnel certifié${eligA ? ', obligatoire pour la rénovation d\'ampleur' : ''}.</p></li>
+      <li><span class="n">${ico('tools')}</span><p><b>Devis d'artisans RGE</b>, indispensables pour obtenir les aides, à signer après le dépôt du dossier.</p></li>
+    </ul>
+    <details><summary>Hypothèses de calcul et prix de l'énergie</summary>
+      <div class="prices">${Object.keys(PRICES).map(k => `<label>${EN_LABEL[k]} (€/kWh)<input type="number" step="0.005" inputmode="decimal" data-price="${k}" value="${PRICES[k]}"></label>`).join('')}</div>
+      <p class="small" style="margin-top:12px">Estimation indicative inspirée de la méthode officielle 3CL du DPE, avec le coefficient de l'électricité à 1,9 en vigueur depuis le 1er janvier 2026. Seul un diagnostiqueur certifié établit un DPE officiel ; l'écart est en général d'une classe au plus. Coûts de travaux : fourchettes TTC posées constatées en 2026.</p>
+    </details>
+    <div class="actions">
+      <button class="btn primary" style="flex:0 1 auto" id="copy">Copier la synthèse</button>
+      <button class="btn" id="edit">Modifier les réponses</button>
+      <button class="btn" id="new">Nouveau client</button>
+      <span class="toast" id="toast" role="status"></span>
+    </div>
+    <textarea id="copytext" hidden></textarea>
+  </section>
+  </div>`;
+
+  $('edit').onclick = () => { mode = 'q'; qi = 0; dir = 1; render(); };
+  $('new').onclick = () => { mode = 'intro'; render(); };
+  $('copy').onclick = () => {
+    const t = [
+      `BILAN ÉNERGÉTIQUE · ${today}`,
+      [S.client, S.adresse].filter(Boolean).join(' · '),
+      '',
+      `Étiquette estimée : ${r.cls} (${fmt(r.epM2)} kWh/m²/an · climat ${r.lg})`,
+      `Facture estimée : ${eur(r.cost)}/an (${eur(r.cost/12)}/mois)`,
+      '', 'DIAGNOSTIC', ...pts.map(p => '- ' + p[1].replace(/<[^>]+>/g, '')),
+      ...(steps.length ? ['', `PLAN DE TRAVAUX : ${r.cls} → ${bq.res.cls}`, ...steps.map((st,i) => `${i+1}. ${st.w.label} (${eur(st.w.cost[0])} – ${eur(st.w.cost[1])}) → classe ${st.after.cls}`),
+        '', 'FINANCEMENT', `Coût total : ${eur(costTTC)}`, `Aides MaPrimeRénov' : ${eur(aide)}`, `Reste à charge : ${eur(reste)}`, `Économie : ${eur(save)}/an`, `Éco-PTZ ${months/12} ans : ${eur(mens)}/mois`] : []),
+      '', 'Estimation indicative, ne remplace pas un DPE officiel.'
+    ].join('\n');
+    const ok = () => { $('toast').textContent = 'Synthèse copiée'; };
+    const fb = () => { const a = $('copytext'); a.hidden = false; a.value = t; a.select(); $('toast').textContent = 'Copie le texte ci-dessous.'; };
+    navigator.clipboard ? navigator.clipboard.writeText(t).then(ok, fb) : fb();
+  };
+  window.scrollTo({top:0});
+}
+
+function render(){
+  if (mode === 'intro') intro();
+  else if (mode === 'q') question();
+  else if (mode === 'calc') calc();
+  else report();
+}
+
+/* ================= interactions ================= */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tile]');
+  if (t) {
+    setKey(t.dataset.tile, t.dataset.v);
+    t.parentElement.querySelectorAll('.tile').forEach(b => b.setAttribute('aria-pressed', b === t));
+    setTimeout(next, 220);
+    return;
+  }
+  const sg = e.target.closest('[data-set]');
+  if (sg) { setKey(sg.dataset.set, sg.dataset.v); sg.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === sg)); refreshValid(); return; }
+  const st = e.target.closest('[data-step]');
+  if (st) {
+    const q = visible()[qi], f = q.fields.find(x => x.key === st.dataset.step);
+    const v = Math.max(f.min, Math.min(f.max, (+S[f.key] || f.min) + +st.dataset.d));
+    setKey(f.key, v); $('st-' + f.key).textContent = v; refreshValid();
+  }
+});
+document.addEventListener('input', e => {
+  const k = e.target.dataset.in;
+  if (k) { setKey(k, e.target.value); const rv = $('rv-' + k); if (rv) rv.textContent = e.target.value; refreshValid(); }
+  if (e.target.dataset.price) { PRICES[e.target.dataset.price] = Math.max(0, +e.target.value || 0); }
+});
+document.addEventListener('change', e => { if (e.target.dataset.price && mode === 'report') { const open = true; report(); document.querySelector('details').open = open; } });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && mode === 'q' && e.target.tagName === 'INPUT') { const b = $('next'); if (b && !b.disabled) next(); } });
+
+render();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,642 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><a href="../" onclick="history.back();return false" class="dcrf-back" style="display:flex;align-items:center;gap:6px;padding:10px 16px;font:600 15px system-ui,-apple-system,sans-serif;color:#3c8219;background:#ffffff;border-bottom:1px solid #e2e9e4;text-decoration:none;margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px)))">&#8249;&nbsp;Appli DCRF</a>
+<title>Fiches Chantier DCRF</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout : une colonne étroite type appli mobile ; écran 1 = choix de la fiche, puis une section par écran, barre d'actions collée en bas */
+:root{
+  --bg:#f3f5f1; --surface:#ffffff; --fg:#23271f; --muted:#646b5d; --line:#d9ded3;
+  --green:#5f9a2e; --green-soft:#e6f1da; --ink:#1d4fa3; --danger:#b3261e;
+  --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#151812; --surface:#1f231b; --fg:#e8ece2; --muted:#a2aa98; --line:#353b2e;
+  --green:#8cc85a; --green-soft:#2a3a1d; --ink:#8fb4ff; --danger:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#151812; --surface:#1f231b; --fg:#e8ece2; --muted:#a2aa98; --line:#353b2e;
+  --green:#8cc85a; --green-soft:#2a3a1d; --ink:#8fb4ff; --danger:#ff8a80; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 120px}
+.wrap{max-width:560px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;padding-block:18px 10px}
+header img{height:38px;border-radius:6px;background:#fff;padding:3px 6px}
+header h1{font-family:var(--display);font-size:1.25rem;margin:0;line-height:1.1}
+header p{margin:0;color:var(--muted);font-size:.85rem}
+.progress{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding-block:8px;z-index:2}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);transition:width .25s}
+.steplabel{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.06em}
+h2{font-family:var(--display);font-size:1.5rem;margin:14px 0 4px;text-wrap:balance}
+.hint{color:var(--muted);margin:0 0 14px;font-size:.92rem}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.qt{display:block;font-weight:600;margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:.95rem;border:1.5px solid var(--line);background:transparent;color:var(--fg);border-radius:10px;padding:9px 14px;cursor:pointer;min-height:44px}
+.chip[aria-pressed="true"]{border-color:var(--green);background:var(--green-soft);font-weight:600}
+.chip:focus-visible,.btn:focus-visible,input:focus-visible,textarea:focus-visible,.fcard:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+input,textarea{font:inherit;width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg);color:var(--fg);min-height:44px}
+textarea{min-height:70px;resize:vertical}
+.other{margin-top:8px}
+.unit{display:flex;align-items:center;gap:8px}.unit span{color:var(--muted);white-space:nowrap}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row2>div{min-width:0}
+.grid{display:grid;gap:6px}.grid input{min-height:40px;padding:8px 10px;font-size:.92rem}
+.gridhead{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.fiches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.fcard{font:inherit;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;color:var(--fg);min-height:64px;display:flex;flex-direction:column;gap:2px}
+.fcard b{font-family:var(--display);font-size:1.05rem;line-height:1.15}
+.fcard small{color:var(--muted);font-size:.78rem}
+.fcard[aria-pressed="true"]{border-color:var(--green);background:var(--green-soft)}
+.cat{font-size:.75rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:16px 0 8px}
+.actions{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));z-index:3}
+.actions .in{max-width:560px;margin:0 auto;display:flex;gap:10px}
+.btn{font:inherit;font-weight:600;border-radius:10px;padding:12px 16px;min-height:48px;cursor:pointer;border:1.5px solid var(--line);background:transparent;color:var(--fg)}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff;flex:1}
+.btn[disabled]{opacity:.4;cursor:default}
+.recap{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.recap h3{margin:0;padding:10px 14px;font-family:var(--display);font-size:1rem;background:var(--green-soft)}
+.recap dl{margin:0;padding:6px 14px 10px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:4px 12px;font-size:.92rem}
+.recap dt{color:var(--muted)} .recap dd{margin:0;font-weight:600;color:var(--ink);overflow-wrap:anywhere}
+.recap dd.empty{color:var(--danger);font-weight:500}
+.recap+.recap{margin-top:12px}
+.msg{margin-top:12px;font-size:.92rem;padding:10px 12px;border-radius:10px;background:var(--green-soft)}
+.msg.err{background:transparent;border:1px solid var(--danger);color:var(--danger)}
+.link{background:none;border:none;color:var(--ink);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+.toprow{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.88rem;margin-bottom:6px}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:10px}
+.photos figure{margin:0;position:relative;aspect-ratio:1;max-width:100%;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.photos img{width:100%;height:100%;object-fit:cover;display:block}
+.photos button{position:absolute;top:4px;right:4px;border:none;border-radius:999px;width:28px;height:28px;background:rgba(0,0,0,.6);color:#fff;font-size:16px;cursor:pointer}
+.filebtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border:1.5px dashed var(--green);border-radius:12px;color:var(--fg);font-weight:600;cursor:pointer;background:var(--green-soft)}
+.filebtn input{position:absolute;opacity:0;width:1px;height:1px}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <img id="logo" alt="DCRF Rénovation d'habitat">
+    <div><h1>Fiches chantier DCRF</h1><p>Questionnaire guidé, fiche + croquis + photos en PDF</p></div>
+  </header>
+  <div class="toprow">
+    <button class="link" id="loadEx" type="button">Charger l'exemple (M. Lafaye, toiture)</button>
+    <button class="link" id="reset" type="button">Nouvelle fiche</button>
+  </div>
+  <div class="progress"><div class="bar"><i id="barfill"></i></div><div class="steplabel"><span id="stepn"></span><span id="stept"></span></div></div>
+  <main id="main"></main>
+</div>
+<div class="actions"><div class="in">
+  <button class="btn" id="prev" type="button">Retour</button>
+  <button class="btn primary" id="next" type="button">Suivant</button>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const LOGO="data:image/jpeg;base64,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";
+document.getElementById("logo").src=LOGO;
+
+// ---------- Listes de réponses réutilisées ----------
+const ON=["Oui","Non"], MAISON=["Plain-pied","1 étage","Combles aménagés","Sur sous-sol"],
+ COUV=["Tuiles mécaniques","Tuiles canal","Tuiles plates","Ardoise","Fibrociment","Tuiles béton"],
+ GTYPE=["PVC","Zinc","Alu"], HGOUT=["Moins de 3 m","3 à 4 m","Plus de 4 m"], N4=["0","1","2","3"],
+ SOL=["Dalle béton","Vide sanitaire","Plancher bois","Terre-plein"], PLAF=["Placo","Lambris","Plâtre","Bois"],
+ TEINTE=["Blanc","Blanc cassé","Ton pierre","Gris clair","Sable"];
+const chips=(id,t,o,x={})=>({id,t,type:"chips",o,other:true,...x});
+const yn=(id,t,x={})=>({id,t,type:"chips",o:ON,...x});
+const num=(id,t,u,x={})=>({id,t,type:"num",u,...x});
+const txt=(id,t,x={})=>({id,t,type:"text",...x});
+const isOui=k=>d=>d[k]==="Oui";
+
+// Bloc toiture commun (couverture, faîtages, gouttières, vélux)
+const ROOF_ELEMENTS=[
+  chips("maison","Type de maison",MAISON,{pair:1}), yn("veranda","Véranda",{pair:1}),
+  {id:"faitage",t:"Présence de faîtage",type:"chips",o:["Oui, scellé","Oui, à sec","Non"],pair:1}, yn("gouttieres","Présence de gouttières",{pair:1}),
+  chips("hGouttiere","Si oui, hauteur des gouttières",HGOUT,{if:isOui("gouttieres"),pair:1}), chips("typeGouttiere","Type de gouttières",GTYPE,{if:isOui("gouttieres"),pair:1}),
+];
+const ROOF_COUNTS=[
+  chips("velux","Nombre de Vélux",N4,{pair:1}), chips("cheminees","Nombre de cheminées",N4,{pair:1}),
+  chips("chiens","Nombre de chiens assis",N4,{pair:1}), chips("chatieres","Nombre de chatières",[...N4,"À définir"],{pair:1}),
+  yn("chemPeindre","Cheminée à peindre",{if:d=>d.cheminees&&d.cheminees!=="0"}),
+  chips("chemTeinte","Si oui, teinte",["Gris","Blanc","Rouge brique","Ton pierre"],{if:isOui("chemPeindre")}),
+];
+const ROOF_DIMS=[
+  chips("pignon","Hauteur du pignon",["4 ml","5 ml","6 ml","7 ml","Pas de pignon (4 pans)"]),
+  chips("rives","Longueur des rives",["Pas de rives","20 m","24 m","28 m"],{pair:1}), chips("lgFaitage","Longueur du faîtage",["8 ml","10 ml","12 ml","14 ml"],{pair:1}),
+  yn("crochets","Prévoir crochets de faîtage",{pair:1}), chips("pente","Degré de pente",["30°","35°","40°","45°"],{pair:1}),
+  chips("mitoyenne","Maison mitoyenne",["Non","Oui, 1 côté","Oui, 2 côtés"]),
+];
+const COUV_MODELE=[
+  num("surface","Surface de la toiture","m²"), chips("couverture","Couverture",COUV),
+  txt("modele","Modèle",{ph:"Réf. tuile, marque…"}), yn("volige","Volige présente"),
+];
+const FACADE_METRAGE=[
+  yn("gouttieres","Présence de gouttière"),
+  chips("hGouttiere","Si oui, hauteur des gouttières",HGOUT,{if:isOui("gouttieres"),pair:1}), chips("typeGouttiere","Type",GTYPE,{if:isOui("gouttieres"),pair:1}),
+  num("lgFacade","Longueur de la façade","m",{pair:1}), num("lgPignons","Longueur des pignons","m",{pair:1}),
+  num("hFacade","Hauteur façade","m",{pair:1}), num("hPignons","Hauteur des pignons","m",{pair:1}),
+];
+const ITE_OPTIONS=[
+  txt("teinteEnduit","Teinte enduit maison",{pair:1}), chips("maison","Type de maison",MAISON,{pair:1}),
+  yn("karcher","Passage Karcher",{pair:1}), yn("chemIsoler","Cheminée à isoler / RPE",{pair:1}),
+  chips("store","Store-banne",["Non","Oui, à déposer","Oui, à conserver"],{pair:1}), chips("robinet","Robinet extérieur",["Non","Oui","Oui, à rallonger"],{pair:1}),
+  chips("robinetQte","Quantité de robinets",["1","2","3"],{if:d=>d.robinet&&d.robinet!=="Non"}),
+  yn("appuis","Appuis de fenêtre aluminium"), txt("appuisRal","RAL appuis de fenêtre",{if:isOui("appuis"),pair:1}), num("appuisQte","Quantité d'appuis","",{if:isOui("appuis"),pair:1}),
+  yn("dessousToit","Dessous-toit à réaliser"), num("dessousToitQte","Quantité dessous-toit","ml",{if:isOui("dessousToit"),pair:1}), txt("dessousToitTeinte","Modèle / teinte dessous-toit",{if:isOui("dessousToit"),pair:1}),
+  yn("gouttPvc","Gouttière PVC à réaliser"), num("gouttPvcQte","Quantité gouttière PVC","ml",{if:isOui("gouttPvc"),pair:1}), txt("gouttPvcTeinte","Modèle / teinte gouttière",{if:isOui("gouttPvc"),pair:1}),
+  num("voletsPaires","Volets battants (quantité de paires)","",{pair:1}), num("lumieres","Lumières extérieures (quantité)","",{pair:1}),
+];
+
+// ---------- Les 18 fiches ----------
+const FICHES=[
+ {id:"toiture",name:"Traitement de toiture",cat:"Toiture",croquis:"toit",steps:[
+  {title:"Toiture",q:[num("surface","Surface de la toiture","m²"),chips("hydro","Application hydrofuge",["Incolore","Coloré"]),
+    chips("teinte","Si coloré, teinte",["Rouge","Brun","Ardoise","Noir"],{if:d=>d.hydro==="Coloré"}),
+    chips("maison","Type de maison",MAISON,{pair:1}),yn("veranda","Véranda",{pair:1}),
+    chips("support","Type de support",COUV,{pair:1}),chips("tailleSupport","Taille du support",["Grand moule (env. 45 x 28 cm)","Petit moule (env. 40 x 25 cm)"],{pair:1})]},
+  {title:"Faîtage et gouttières",q:ROOF_ELEMENTS.slice(2)},
+  {title:"Éléments de toiture",q:ROOF_COUNTS},
+  {title:"Dimensions",q:ROOF_DIMS.slice(0,5)},
+  {title:"Extérieurs",q:[chips("robinets","Nombre de robinets extérieurs",N4,{pair:1}),chips("prises","Nombre de prises extérieures",N4,{pair:1}),ROOF_DIMS[5]]}]},
+ {id:"couverture",name:"Changement de couverture",cat:"Toiture",croquis:"toit",steps:[
+  {title:"Couverture",q:[...COUV_MODELE.slice(0,2),chips("couvNeuve","Couverture neuve posée",["Ardoise naturelle","Tuile terre cuite","Tuile béton","Tuile ciment"]),...COUV_MODELE.slice(2)]},{title:"Maison",q:ROOF_ELEMENTS},{title:"Éléments de toiture",q:ROOF_COUNTS},{title:"Dimensions",q:ROOF_DIMS}]},
+ {id:"faitages",name:"Changement de faîtages, rives et chéneaux",cat:"Toiture",croquis:"toit",steps:[
+  {title:"Couverture",q:[...COUV_MODELE,{id:"dessousToitType",t:"Dessous de toit",type:"chips",o:["Non","En U","PVC"],pair:1},yn("solin","Solin de cheminée",{pair:1})]},{title:"Maison",q:ROOF_ELEMENTS},{title:"Éléments de toiture",q:ROOF_COUNTS},{title:"Dimensions",q:ROOF_DIMS}]},
+ {id:"gouttiere",name:"Changement de gouttière",cat:"Toiture",croquis:"toit",steps:[
+  {title:"Gouttières",q:[num("lgChanger","Longueur à changer","ml"),chips("gouttNeuve","Gouttière posée",["Zinc","PVC","Dalle nantaise","Dalle havraise"]),chips("couverture","Couverture",COUV),txt("modele","Modèle"),
+    chips("couleurPvc","Couleur PVC",["Blanc","Gris","Sable","Marron","Noir"],{pair:1}),txt("aluRal","ALU RAL",{pair:1,ph:"RAL 7016…"})]},
+  {title:"Maison",q:ROOF_ELEMENTS.slice(0,4)},{title:"Éléments de toiture",q:ROOF_COUNTS},{title:"Dimensions",q:[...ROOF_DIMS,chips("hGouttiere","Hauteur des gouttières",HGOUT)]}]},
+ {id:"velux",name:"Vélux",cat:"Toiture",croquis:"toit",steps:[
+  {title:"Vélux",q:[num("qteVelux","Quantité de Vélux",""),chips("couverture","Couverture",COUV),
+    {id:"veluxTab",t:"Modèles (voir plaque)",type:"grid",cols:["Modèle Vélux","Store occultant","VR solaire","Qté"],rows:4}]},
+  {title:"Maison",q:ROOF_ELEMENTS},{title:"Éléments de toiture",q:ROOF_COUNTS},{title:"Dimensions",q:ROOF_DIMS}]},
+ {id:"charpente",name:"Traitement de charpente",cat:"Toiture",croquis:"blanc",steps:[
+  {title:"Traitement",q:[chips("typeTraitement","Type de traitement",["Préventif","Curatif","Préventif + curatif","Retardateur de feu (PARAFLAM)"]),
+    num("surfaceSol","Surface au sol","m²",{pair:1}),num("fleche","Hauteur de flèche","m",{pair:1}),
+    yn("trappe","Accès trappe"),txt("tailleTrappe","Si oui, taille de la trappe",{if:isOui("trappe"),ph:"60 x 60 cm"}),
+    chips("plancher","Nature du plancher",["Placo","Plancher bois","Solives apparentes","Béton"])]},
+  {title:"Charpente",q:[chips("charpente","Type de charpente",["Traditionnelle","Fermettes","Métallique"],{pair:1}),chips("bois","Type de bois",["Résineux","Chêne","Châtaignier"],{pair:1}),
+    chips("maison","Type de maison",MAISON),
+    yn("isolantSol","Présence d'isolant au sol",{pair:1}),yn("isolantRamp","Isolation en rampants",{pair:1}),
+    chips("isolantSolType","Type d'isolant au sol",["Laine de verre","Laine de roche","Ouate","Vermiculite"],{if:isOui("isolantSol"),pair:1}),chips("isolantRampType","Type d'isolant en rampants",["Laine de verre","Laine de roche","Ouate","Polystyrène"],{if:isOui("isolantRamp"),pair:1}),
+    chips("encombrement","Encombrement",["Vide","Peu encombré","Très encombré"])]},
+  {title:"Intervention",q:[yn("plancherPresent","Plancher présent"),yn("prevoirPlancher","Si non, prévoir plancher",{if:d=>d.plancherPresent==="Non"}),
+    yn("injection","Injection"),txt("injectionDetail","Si oui, précisions",{if:isOui("injection")}),
+    yn("reinjection","Réinjection"),yn("injecteurPresent","Si oui, injecteur présent",{if:isOui("reinjection")}),
+    yn("pulveTotale","Pulvérisation totale",{pair:1}),yn("doublePulve","Double pulvérisation totale",{pair:1})]}]},
+ {id:"ventilation",name:"Ventilation",cat:"Intérieur",croquis:"blanc",steps:[
+  {title:"Maison",q:[chips("systeme","Système à poser",["VPI","VMC hygro B","VMC double flux","Ventilation des combles","Green Air Box","Pure PHI"]),chips("maison","Type de maison",MAISON),chips("sol","Nature du sol",SOL),chips("plafond","Nature du plafond",PLAF),
+    chips("tailleTrappe","Taille de la trappe",["50 x 50 cm","60 x 60 cm","70 x 70 cm","Pas de trappe"]),
+    yn("elecCombles","Électricité présente dans les combles",{pair:1}),chips("tableauNormes","Tableau électrique aux normes",["Oui","Non","À vérifier"],{pair:1})]},
+  {title:"Toiture",q:[chips("couverture","Type de couverture",COUV),yn("gouttieres","Présence de gouttières"),
+    chips("hGouttiere","Si oui, hauteur des gouttières",HGOUT,{if:isOui("gouttieres"),pair:1}),chips("typeGouttiere","Type",GTYPE,{if:isOui("gouttieres"),pair:1}),
+    chips("charpente","Type de charpente",["Fermettes","Traditionnelle","Métallique"]),
+    chips("chatiereLibre","Chatière libre",["Non","Oui","À définir"]),chips("chatiereNb","Si oui, combien",["1","2","3"],{if:d=>d.chatiereLibre==="Oui"})]},
+  {title:"Ventilation existante",q:[yn("ventilPresente","Ventilation déjà présente"),
+    chips("ventilType","De quel type",["VMC simple flux","VMC hygro","VMC double flux","VPI","Aération naturelle"],{if:isOui("ventilPresente")}),
+    chips("raccord","Raccord chatière possible (évacuation ancienne ventilation)",["Oui","Non","À vérifier"],{if:isOui("ventilPresente")}),
+    chips("ouverture","Type d'ouverture",["Trappe","Escalier escamotable","Par la toiture"]),
+    num("surfHab","Surface habitable","m²",{pair:1}),num("volume","Volume","m³",{pair:1,hint:"surface x 2,5 m de hauteur"}),
+    chips("fleche","Hauteur de la flèche",["Moins de 1,5 m","1,5 à 2 m","Plus de 2 m"])]}]},
+ {id:"isolation",name:"Isolation",cat:"Intérieur",croquis:"blanc",steps:[
+  {title:"Isolant",q:[chips("isoType","Type d'isolation",["Combles perdus (soufflage)","Sous rampant","Sous-sol / vide sanitaire"]),chips("isoMat","Isolant",["Laine de verre","Ouate de cellulose","Thermobulle","Film HPV","Skytech","Thermoreflexion"]),
+    num("isoSurf","Surface","m²",{pair:1}),num("isoEp","Épaisseur","cm",{pair:1}),
+    yn("encadrThermo","Réaliser un encadrement de trappe en thermoréflexion",{pair:1}),yn("encadrBois","Réaliser un encadrement de trappe en bois",{pair:1}),
+    yn("trappeThermo","Isoler la trappe en Thermo")]},
+  {title:"Maison",q:[chips("maison","Type de la maison",MAISON,{pair:1}),chips("encombrement","Encombrement",["Vide","Peu encombré","Très encombré"],{pair:1}),
+    chips("solCombles","Nature du sol des combles",["Placo","Plancher bois","Solives","Isolant existant"]),chips("plafond","Nature des plafonds",PLAF),
+    txt("evacuation","Évacuation",{ph:"Ancien isolant à évacuer ?"}),txt("chantier","Chantier à effectuer")]},
+  {title:"Toiture",q:[chips("couverture","Type de couverture",COUV),yn("gouttieres","Gouttières"),
+    chips("hGouttiere","Hauteur des gouttières",HGOUT,{if:isOui("gouttieres"),pair:1}),chips("typeGouttiere","Type",GTYPE,{if:isOui("gouttieres"),pair:1}),
+    yn("faitageIso","Faîtage"),txt("faitageSiOui","Si oui",{if:isOui("faitageIso")}),
+    num("fleche","Hauteur de flèche (intérieur)","ml",{pair:1}),yn("liteauPignon","Prévoir liteau sur pignon",{pair:1}),
+    chips("pignonNature","Nature du pignon",["Parpaing","Brique","Pierre","Bois"])]}]},
+ {id:"plancher",name:"Plancher bois",cat:"Intérieur",croquis:"blanc",steps:[
+  {title:"Plancher",q:[num("surface","Surface","m²",{pair:1}),num("epaisseur","Épaisseur","mm",{pair:1}),
+    yn("surelever","Surélever les solives",{pair:1}),yn("encadrBois","Réaliser un encadrement de trappe en bois",{pair:1}),yn("trappeThermo","Isoler la trappe en Thermo")]},
+  {title:"Combles",q:[chips("maison","Type de maison",MAISON,{pair:1}),chips("encombrement","Encombrement",["Vide","Peu encombré","Très encombré"],{pair:1}),
+    chips("solCombles","Nature du sol des combles",["Placo","Solives","Isolant existant"]),chips("plafond","Nature des plafonds",PLAF),
+    chips("couverture","Type de couverture",COUV),num("fleche","Hauteur de flèche (intérieur)","ml"),
+    num("largeur","Largeur","ml",{pair:1}),num("longueur","Longueur","ml",{pair:1})]}]},
+ {id:"radiateurs",name:"Radiateurs",cat:"Intérieur",croquis:"blanc",tarif:true,steps:[
+  {title:"Radiateurs",q:[{id:"radTab",t:"Puissance et localisation",type:"grid",cols:["Type","Puissance (W)","Pièce"],rows:12}]},
+  {title:"Maison",q:[chips("maison","Type de maison",MAISON),chips("sol","Nature du sol",SOL),chips("cloisons","Nature des cloisons",["Placo","Brique","Carreau de plâtre","Parpaing"]),
+    txt("existant","Électricité et radiateurs déjà présents",{ph:"Type, nombre, état"}),
+    num("surfHab","Surface habitable","m²",{pair:1}),num("volume","Volume","m³",{pair:1}),num("fleche","Hauteur de la flèche","ml")]}]},
+ {id:"tableau",name:"Tableau électrique",cat:"Intérieur",croquis:"blanc",steps:[
+  {title:"Tableau",q:[chips("rangees","Nombre de rangées",["1","2","3","4"],{pair:1}),num("disjoncteurs","Nombre de disjoncteurs","",{pair:1}),
+    chips("typeTableau","Type",["Fusibles","Disjoncteurs","Mixte"]),num("hTableau","Hauteur du tableau","m"),
+    yn("hauteurHomme","Mettre le tableau à hauteur d'homme"),{id:"materiel",t:"Matériel autre à accorder",type:"area"},
+    num("surfHab","Surface de l'habitation","m²",{pair:1}),chips("maison","Type de maison",MAISON,{pair:1}),
+    chips("situation","Situation du tableau",["Garage","Entrée","Cellier","Placard","Extérieur"])]}]},
+ {id:"menuiseries",name:"Menuiseries - Divers",cat:"Intérieur",croquis:"blanc",steps:[
+  {title:"Menuiseries",q:[{id:"menTab",t:"Quantité ou surface, dimension / type",type:"grid",cols:["Qté / surface","Dimension / type"],rows:12}]},
+  {title:"Maison",q:[chips("maison","Type de maison",MAISON),chips("cloisons","Nature des cloisons",["Placo","Brique","Parpaing","Pierre"]),
+    num("hGouttMl","Hauteur gouttières","ml",{pair:1}),num("dessousToitMl","Longueur des dessous de toit","ml",{pair:1}),
+    yn("cachePanne","Cache panne"),num("cachePanneQte","Si oui, quantité","",{if:isOui("cachePanne")})]},
+  {title:"À prévoir",q:[yn("deposeAppuis","Dépose d'appuis de fenêtres",{pair:1}),yn("deposeSeuil","Dépose de seuil",{pair:1}),
+    yn("ciment","Prévoir ciment",{pair:1}),yn("liteau","Prévoir liteau",{pair:1}),txt("liteauSection","Section liteau",{if:isOui("liteau")}),
+    yn("cables","Prévoir câbles",{pair:1}),yn("prisesPrev","Prévoir prises",{pair:1}),
+    yn("tapees","Déligner les tapées menuiseries",{pair:1}),yn("cornieres","Prévoir cornières",{pair:1}),
+    num("cornieresLg","Longueur cornières","ml",{if:isOui("cornieres"),pair:1}),txt("cornieresSection","Section cornières",{if:isOui("cornieres"),pair:1}),
+    {id:"autres",t:"Autres",type:"area"}]}]},
+ {id:"facade",name:"Façade (peinture)",cat:"Façade",croquis:"facade",steps:[
+  {title:"Peinture",q:[num("surface","Surface à peindre","m²"),chips("application","Application",["Peinture","Peinture + fixateur","Peinture + hydrofuge"]),
+    chips("teinteMaison","Teinte maison",TEINTE,{pair:1}),chips("teinteSoub","Teinte soubassement",["Gris","Ton pierre","Sable","Brun"],{pair:1}),
+    chips("teinteMenuis","Teinte tableau de menuiserie",["Blanc","Gris","Ton pierre"])]},
+  {title:"Support",q:[yn("karcher","Passage Karcher",{pair:1}),chips("maison","Type de maison",MAISON,{pair:1}),
+    yn("veranda","Véranda",{pair:1}),chips("support","Type de support",["Enduit gratté","Enduit lisse","Crépi","Pierre","Brique"],{pair:1}),
+    yn("repMaconnerie","Reprise maçonnerie",{pair:1}),chips("matiere","Matière du support",["Parpaing","Brique","Pierre","Béton"],{pair:1}),
+    yn("repFissures","Reprise fissures",{pair:1}),yn("store","Store-banne présent",{pair:1})]},
+  {title:"Peintures annexes",q:[yn("appuis","Peinture appuis de fenêtre"),txt("appuisTeinte","Si oui, teinte",{if:isOui("appuis"),pair:1}),num("appuisQte","Quantité","",{if:isOui("appuis"),pair:1}),
+    yn("chemPeindre","Peinture cheminée"),txt("chemTeinte","Si oui, teinte",{if:isOui("chemPeindre"),pair:1}),num("chemQte","Quantité","",{if:isOui("chemPeindre"),pair:1}),
+    {id:"prevoir",t:"Prévoir",type:"area"}]},
+  {title:"Métrage",q:FACADE_METRAGE}]},
+ {id:"hydrofacade",name:"Hydro façade",cat:"Façade",croquis:"facade",steps:[
+  {title:"Façade",q:[num("surface","Surface à traiter","m²"),chips("application","Application",["Hydrofuge incolore"]),
+    yn("karcher","Passage Karcher",{pair:1}),chips("maison","Type de maison",MAISON,{pair:1}),
+    yn("veranda","Véranda",{pair:1}),chips("support","Type de support",["Enduit gratté","Enduit lisse","Crépi","Pierre","Brique"],{pair:1}),
+    yn("store","Store-banne présent"),{id:"prevoir",t:"Prévoir",type:"area"}]},
+  {title:"Métrage",q:FACADE_METRAGE}]},
+ {id:"ite",name:"ITE (isolation extérieure)",cat:"Façade",croquis:"facade",steps:[
+  {title:"Isolation",q:[num("surface","Surface à isoler","m²"),txt("partie","Partie à isoler",{ph:"Toutes façades, pignon nord…"}),
+    chips("typeIso","Type d'isolation",["Polystyrène graphité","Polystyrène blanc","Laine de roche","Fibre de bois"]),
+    chips("finitionIte","Finition",["Talochée","Bardage PVC ton pierre"],{pair:1}),chips("prepaIte","Préparation du support",["Croûtage","ISOLFIX","Croûtage + ISOLFIX","Aucune"],{pair:1})]},
+  {title:"Options",q:ITE_OPTIONS},
+  {title:"Rallonge de toiture",q:[yn("rallonge","Rallonge de toiture"),txt("rallongeModele","Modèle",{if:isOui("rallonge"),pair:1}),num("rallongeQte","Quantité","ml",{if:isOui("rallonge"),pair:1})]},
+  {title:"Métrage des façades",q:[num("lgFacade","Longueur de la façade","m",{pair:1}),num("lgPignons","Longueur des pignons","m",{pair:1}),
+    num("hFacade","Hauteur façade","m",{pair:1}),num("hPignons","Hauteur des pignons côté","m",{pair:1}),num("hPointe","Hauteur de la pointe du pignon","m")]}]},
+ {id:"rpe",name:"RPE",cat:"Façade",croquis:"facade",tarif:true,steps:[
+  {title:"RPE",q:[num("surface","Surface en RPE","m²")]},
+  {title:"Options",q:ITE_OPTIONS},
+  {title:"Métrage des façades",q:[yn("sousBassement","Sous-bassement sur façade"),num("sousBassementLg","Hauteur / longueur de sous-bassement en RPE","ml",{if:isOui("sousBassement")}),
+    num("lgFacade","Longueur de la façade","ml",{pair:1}),num("lgPignons","Longueur des pignons","ml",{pair:1}),
+    num("hFacade","Hauteur façade","ml",{pair:1}),num("hPignons","Hauteur des pignons côté","ml",{pair:1}),num("hPointe","Hauteur de la pointe du pignon","ml")]}]},
+ {id:"assechement",name:"Assèchement des murs",cat:"Façade",croquis:"blanc",steps:[
+  {title:"Assèchement",q:[chips("methodeAssech","Méthode",["Injection","Inverseur de polarité (IPE)","Injection + IPE"]),num("lgAssech","Longueur d'assèchement","ml"),chips("forage","Intermédiaire entre forage",["10 cm","12 cm","15 cm"]),
+    chips("hAssech","Hauteur d'assèchement par rapport au sol fini intérieur",["Au niveau du sol","10 cm","15 cm","20 cm"]),
+    chips("assiette","Assiette d'assèchement",["Intérieur","Extérieur","Intérieur + extérieur"]),
+    chips("terrain","Type de terrain",["Argileux","Sableux","Calcaire","Humide"])]},
+  {title:"Maison",q:[chips("maison","Type de maison",MAISON),chips("cave","Maison avec cave ou sous-sol",["Non","Cave","Sous-sol"]),
+    txt("couleurSoub","Couleur ancien soubassement"),chips("natureMurs","Nature des murs",["Pierre","Parpaing","Brique","Moellons"]),
+    num("epMur","Si mur en pierre, épaisseur","cm",{if:d=>d.natureMurs==="Pierre"}),
+    yn("reboucher","Reboucher injecteur"),yn("capuchon","Si oui, capuchon injecteur",{if:isOui("reboucher")}),
+    txt("enduitGratte","Enduit gratté teinte",{pair:1}),txt("enduitLisse","Enduit lisse teinte",{pair:1})]}]},
+ {id:"autres",name:"Autres travaux",cat:"Divers",croquis:"blanc",steps:[
+  {title:"Prestation",q:[chips("prestation","Type de prestation",["Croûtage","Maçonnerie","Démoussage","Peinture","Nettoyage"]),
+    txt("prestation2","Prestation 2"),txt("prestation3","Prestation 3"),
+    {id:"descriptif",t:"Descriptif rapide du projet",type:"area",pl:"Descriptif rapide du projet (déplacement d'un technicien métreur)"}]}]},
+];
+const fiche=()=>FICHES.find(f=>f.id===D._fiche);
+
+const COMMON=[
+ {title:"Commande",hint:"Reprends les infos du devis signé.",q:[
+  txt("numCmd","N° de commande",{ph:"D2026…"}),{id:"dateCmd",t:"Date de la commande",type:"date"},
+  num("montant","Montant TTC","€"),num("tarifHT","Tarif HT","€",{if:()=>fiche()&&fiche().tarif}),
+  {id:"paiement",t:"Paiement",type:"chips",o:["Comptant","Financement"]},
+  num("acompte","Acompte","€",{if:d=>d.paiement==="Comptant"}),
+  chips("organisme","Organisme de financement",["Sofinco","Cetelem","Franfinance","Domofinance"],{if:d=>d.paiement==="Financement"}),
+  {id:"frt",t:"FRT",type:"chips",o:["FRT à faire signer","FRT déjà signé"],if:d=>d.paiement==="Financement"}]},
+ {title:"Planning",hint:"Dates de pose et conseiller.",q:[
+  {id:"posable",t:"Posable à partir du",type:"date"},
+  {id:"datesDef",t:"Dates des travaux",type:"chips",o:["Dates fixées","À définir"]},
+  {id:"du",t:"Du",type:"date",half:1},{id:"au",t:"Au",type:"date",half:1},
+  txt("conseiller","Conseiller(s) technique(s)",{ph:"Prénom Nom"})]},
+ {title:"Client",hint:"Coordonnées et travaux prévus.",q:[
+  txt("client","Nom du client",{ph:"M. / Mme …"}),txt("adresse","Adresse",{ph:"N°, rue"}),txt("cpville","Code postal et ville",{ph:"36110 Brion"}),
+  txt("tel","Téléphone",{mode:"tel"}),txt("mail","Adresse mail",{mode:"email"}),
+  txt("travaux","Travaux à prévoir",{ph:"Ex. hydrofuge toiture incolore + VPI"}),{id:"note",t:"Note particulière",type:"area",ph:"Accès, animaux, horaires…"}]},
+];
+const PICK={title:"Type de fiche",pick:true,q:[]}, PHOTOS={title:"Photos",photos:true,q:[]}, RECAP={title:"Récapitulatif",recap:true,q:[]};
+function steps(){const f=fiche();return f?[PICK,...COMMON,...f.steps,PHOTOS,RECAP]:[PICK]}
+
+const EXEMPLE={_fiche:"toiture",numCmd:"D202600524",dateCmd:"2026-10-09",montant:"13 297,90",paiement:"Financement",organisme:"Sofinco",frt:"FRT à faire signer",
+ posable:"2026-10-24",datesDef:"À définir",du:"2026-10-24",au:"2026-10-27",conseiller:"Tristan Hoarau",
+ client:"M. Michel Lafaye",adresse:"372 Route des Chapelles",cpville:"36110 Brion",tel:"02 54 35 33 57",mail:"michel_lafaye@orange.fr",
+ travaux:"Hydrofuge toiture incolore + VPI",note:"Chantier couplé VPI",surface:"100",hydro:"Incolore",maison:"Plain-pied",veranda:"Non",
+ support:"Tuiles mécaniques",tailleSupport:"Grand moule (env. 45 x 28 cm)",faitage:"Oui, à sec",gouttieres:"Oui",hGouttiere:"Moins de 3 m",
+ typeGouttiere:"PVC",velux:"0",cheminees:"0",chiens:"0",chatieres:"À définir",pignon:"6 ml",rives:"Pas de rives",lgFaitage:"10 ml",
+ crochets:"Oui",pente:"40°",robinets:"1",prises:"1",mitoyenne:"Non"};
+
+let D={}, step=0, PH=[];
+try{const s=localStorage.getItem("dcrf-fiches");if(s){const o=JSON.parse(s);D=o.D||{};step=o.step||0}}catch(e){}
+function save(){try{localStorage.setItem("dcrf-fiches",JSON.stringify({D,step}))}catch(e){}}
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const visible=q=>!q.if||q.if(D);
+
+// ---------- Rendu des écrans ----------
+function render(){
+  const S=steps(); if(step>=S.length)step=S.length-1;
+  const st=S[step],m=document.getElementById("main");
+  document.getElementById("barfill").style.width=(fiche()?(step+1)/S.length*100:4)+"%";
+  document.getElementById("stepn").textContent=fiche()?"Étape "+(step+1)+" / "+S.length:"Choisis la fiche";
+  document.getElementById("stept").textContent=fiche()?fiche().name:"";
+  document.getElementById("prev").disabled=step===0;
+  const nx=document.getElementById("next");
+  nx.textContent=st.recap?"Générer le PDF":"Suivant"; nx.disabled=st.pick&&!fiche();
+  let h=`<h2>${st.title}</h2>${st.hint?`<p class="hint">${st.hint}</p>`:""}`;
+  if(st.pick){
+    h+=`<p class="hint">Quel chantier ? Les infos client restent si tu changes de fiche.</p>`;
+    [...new Set(FICHES.map(f=>f.cat))].forEach(c=>{
+      h+=`<div class="cat">${c}</div><div class="fiches">`+FICHES.filter(f=>f.cat===c).map(f=>`<button type="button" class="fcard" data-fiche="${f.id}" aria-pressed="${D._fiche===f.id}"><b>${esc(f.name)}</b><small>${f.steps.reduce((n,s)=>n+s.q.length,0)} questions${f.croquis!=="blanc"?" · croquis auto":""}</small></button>`).join("")+`</div>`});
+    m.innerHTML=h;return;
+  }
+  if(st.photos){
+    h+=`<p class="hint">Photos obligatoires. Prends-les en direct ou choisis-les dans ta pellicule : elles seront ajoutées à la fin du PDF.</p>
+    <label class="filebtn">Ajouter des photos<input type="file" id="photoIn" accept="image/*" multiple></label>
+    <div class="photos">${PH.map((p,i)=>`<figure><img src="${p}" alt="Photo ${i+1}"><button type="button" data-delph="${i}" aria-label="Retirer la photo ${i+1}">×</button></figure>`).join("")}</div>
+    <p class="hint" style="margin-top:10px">${PH.length} photo(s). Elles ne sont pas gardées si tu fermes la page avant de générer le PDF.</p>`;
+    m.innerHTML=h;document.getElementById("photoIn").onchange=addPhotos;return;
+  }
+  if(st.recap){h+=`<p class="hint">Vérifie, puis génère le PDF : fiche, croquis${PH.length?" et "+PH.length+" photo(s)":""}.</p>`+recapHTML()+`<div id="out"></div>`;m.innerHTML=h;return}
+  const qs=st.q.filter(visible);let i=0;
+  while(i<qs.length){
+    const q=qs[i];
+    if((q.half||q.pair)&&qs[i+1]&&(qs[i+1].half||qs[i+1].pair)&&q.type!=="chips"&&qs[i+1].type!=="chips"){h+=`<div class="q"><div class="row2">${field(q)}${field(qs[i+1])}</div></div>`;i+=2;continue}
+    h+=`<div class="q">${field(q)}</div>`;i++;
+  }
+  m.innerHTML=h;
+}
+function field(q){
+  const v=D[q.id]??"",lab=`<label class="qt" for="f_${q.id}">${q.t}</label>`;
+  if(q.type==="text")return `<div>${lab}<input id="f_${q.id}" data-id="${q.id}" value="${esc(v)}" placeholder="${esc(q.ph||"")}" ${q.mode==="email"?'type="email" inputmode="email"':q.mode==="tel"?'type="tel"':""}></div>`;
+  if(q.type==="num")return `<div>${lab}<div class="unit"><input id="f_${q.id}" data-id="${q.id}" value="${esc(v)}" inputmode="decimal">${q.u?`<span>${q.u}</span>`:""}</div>${q.hint?`<span class="hint" style="font-size:.8rem">${q.hint}</span>`:""}</div>`;
+  if(q.type==="date")return `<div>${lab}<input type="date" id="f_${q.id}" data-id="${q.id}" value="${esc(v)}"></div>`;
+  if(q.type==="area")return `<div>${lab}<textarea id="f_${q.id}" data-id="${q.id}" placeholder="${esc(q.ph||"")}">${esc(v)}</textarea></div>`;
+  if(q.type==="grid"){
+    const rows=Array.isArray(v)?v:[];const filled=rows.filter(r=>r&&r.some(Boolean)).length;const n=Math.min(q.rows,Math.max(3,filled+1));
+    let h=`<span class="qt">${q.t}</span><div class="grid" style="grid-template-columns:repeat(${q.cols.length},minmax(0,1fr))">`+q.cols.map(c=>`<span class="gridhead">${c}</span>`).join("");
+    for(let r=0;r<n;r++)q.cols.forEach((c,ci)=>h+=`<input aria-label="${esc(c)} ligne ${r+1}" data-grid="${q.id}" data-r="${r}" data-c="${ci}" value="${esc(rows[r]?.[ci]||"")}">`);
+    return h+`</div>${n<q.rows?`<span class="hint" style="font-size:.8rem">Une nouvelle ligne apparaît quand tu remplis la dernière.</span>`:""}`;
+  }
+  const isOther=v&&!q.o.includes(v);
+  let h=`<span class="qt" id="l_${q.id}">${q.t}</span><div class="chips" role="group" aria-labelledby="l_${q.id}">`;
+  q.o.forEach(o=>h+=`<button type="button" class="chip" data-chip="${q.id}" data-v="${esc(o)}" aria-pressed="${v===o}">${esc(o)}</button>`);
+  if(q.other)h+=`<button type="button" class="chip" data-chip="${q.id}" data-other="1" aria-pressed="${!!(isOther||D["_o_"+q.id])}">Autre</button>`;
+  h+=`</div>`;
+  if(q.other&&(isOther||D["_o_"+q.id]))h+=`<input class="other" id="f_${q.id}" data-id="${q.id}" value="${esc(isOther?v:"")}" placeholder="Préciser">`;
+  return h;
+}
+function allQ(){const f=fiche();return [...COMMON,...(f?f.steps:[])].flatMap(s=>s.q)}
+document.addEventListener("click",e=>{
+  const fc=e.target.closest("[data-fiche]");
+  if(fc){D._fiche=fc.dataset.fiche;save();render();return}
+  const dp=e.target.closest("[data-delph]");
+  if(dp){PH.splice(+dp.dataset.delph,1);render();return}
+  const c=e.target.closest("[data-chip]");if(!c)return;
+  const id=c.dataset.chip;
+  if(c.dataset.other){D["_o_"+id]=1;const q=allQ().find(q=>q.id===id);if(q&&q.o.includes(D[id]))D[id]=""}
+  else{D[id]=c.dataset.v;delete D["_o_"+id]}
+  save();render();
+  if(c.dataset.other){const f=document.getElementById("f_"+id);if(f)f.focus()}
+});
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset.id){D[t.dataset.id]=t.value;save();return}
+  if(t.dataset.grid){const id=t.dataset.grid;const a=Array.isArray(D[id])?D[id]:[];const r=+t.dataset.r,c=+t.dataset.c;a[r]=a[r]||[];a[r][c]=t.value;D[id]=a;save();
+    const q=allQ().find(q=>q.id===id);const filled=a.filter(r=>r&&r.some(Boolean)).length;
+    const shown=document.querySelectorAll(`[data-grid="${id}"][data-c="0"]`).length;
+    if(filled>=shown&&shown<q.rows){const pos=t.selectionStart;render();const el=document.querySelector(`[data-grid="${id}"][data-r="${r}"][data-c="${c}"]`);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}}}}
+});
+document.getElementById("prev").onclick=()=>{if(step>0){step--;save();render();window.scrollTo(0,0)}};
+document.getElementById("next").onclick=()=>{
+  const st=steps()[step];
+  if(st.recap){makePDF();return}
+  if(st.pick&&!fiche())return;
+  step++;save();render();window.scrollTo(0,0)};
+document.getElementById("loadEx").onclick=()=>{D={...EXEMPLE};step=steps().length-1;save();render();window.scrollTo(0,0)};
+document.getElementById("reset").onclick=()=>{D={};PH=[];step=0;save();render();window.scrollTo(0,0)};
+
+// ---------- Photos (pellicule ou appareil) ----------
+function addPhotos(e){
+  const files=[...e.target.files];
+  Promise.all(files.map(f=>new Promise(res=>{
+    const url=URL.createObjectURL(f),img=new Image();
+    img.onload=()=>{const k=Math.min(1,1400/Math.max(img.width,img.height));const c=document.createElement("canvas");
+      c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);res(c.toDataURL("image/jpeg",.8))};
+    img.onerror=()=>{URL.revokeObjectURL(url);res(null)};img.src=url;
+  }))).then(r=>{PH.push(...r.filter(Boolean));render()});
+}
+
+// ---------- Valeurs affichées ----------
+const fd=s=>{if(!s)return"";const p=String(s).split("-");return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s};
+const numv=s=>{const m=String(s||"").replace(/\s/g,"").replace(",",".").match(/[\d.]+/);return m?parseFloat(m[0]):NaN};
+function show(q){
+  if(q.if&&!q.if(D))return "-";
+  const v=D[q.id];
+  if(q.type==="grid")return (Array.isArray(v)?v:[]).filter(r=>r&&r.some(Boolean)).map(r=>q.cols.map((c,i)=>r[i]||"-").join(" / ")).join(" ; ");
+  if(v===undefined||v==="")return "";
+  if(q.type==="date")return fd(v);
+  if(q.type==="num"&&q.u&&!String(v).includes(q.u))return v+" "+q.u;
+  return String(v);
+}
+function recapHTML(){
+  const f=fiche();
+  const block=(t,qs)=>`<section class="recap"><h3>${esc(t)}</h3><dl>${qs.map(q=>{const v=show(q);const e=v==="";return `<dt>${esc(q.t)}</dt><dd class="${e?"empty":""}">${e?"à compléter":esc(v)}</dd>`}).join("")}</dl></section>`;
+  return COMMON.map(s=>block(s.title,s.q.filter(visible))).join("")+f.steps.map(s=>block(s.title,s.q)).join("");
+}
+
+// ---------- PDF ----------
+const BLUE=[29,79,163];
+function T(doc,x,y,t,o={}){doc.setFont("helvetica",o.b===false?"normal":"bold");doc.setFontSize(o.s||9.5);doc.setTextColor(0);doc.text(String(t),x,y,o.c?{align:"center"}:undefined)}
+function V(doc,x,y,t,o={}){if(t===undefined||t===null||t==="")t="-";doc.setFont("helvetica","bold");doc.setFontSize(o.s||9.5);doc.setTextColor(...BLUE);
+  const opt={};if(o.c)opt.align="center";if(o.w)opt.maxWidth=o.w;doc.text(String(t),x,y,opt);doc.setTextColor(0)}
+function box(doc,x,y,on){doc.setLineWidth(.3);doc.rect(x,y-3,3.2,3.2);if(on){doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text("X",x+.6,y-.4)}}
+function lines(doc,t,w,s){doc.setFont("helvetica","bold");doc.setFontSize(s);return doc.splitTextToSize(String(t||"-"),w)}
+
+function makePDF(){
+  const out=document.getElementById("out");
+  if(!window.jspdf){out.innerHTML=`<p class="msg err">Le générateur PDF ne s'est pas chargé. Vérifie la connexion puis recharge la page.</p>`;return}
+  const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"}), f=fiche();
+  ficheHeader(doc,f); ficheBody(doc,f);
+  doc.addPage(); f.croquis==="toit"?croquisToit(doc):f.croquis==="facade"?croquisFacade(doc):croquisBlanc(doc);
+  PH.forEach((p,i)=>{doc.addPage();T(doc,105,14,`Photo ${i+1} / ${PH.length} - ${D.client||""}`,{s:10,c:1});
+    const pr=doc.getImageProperties(p);const k=Math.min(180/pr.width,255/pr.height);doc.addImage(p,"JPEG",105-pr.width*k/2,20,pr.width*k,pr.height*k)});
+  const name=(f.name.replace(/[^\wÀ-ÿ]+/g,"_")+"_"+(D.client||"client").replace(/^(M\.|Mme|Mr)\s*/i,"").replace(/[^\wÀ-ÿ-]+/g,"_")).replace(/_+/g,"_")+".pdf";
+  const blob=doc.output("blob");
+  out.innerHTML=`<p class="msg">PDF prêt…</p>`;
+  (async()=>{
+    let dl=null;try{dl=await window.claude?.use?.("downloads")}catch(e){}
+    if(dl){
+      try{await dl.save({filename:name,data:blob});out.innerHTML=`<p class="msg">${esc(name)} enregistré.</p>`}
+      catch(e){out.innerHTML=e&&e.code==="declined"?`<p class="msg">Enregistrement annulé. Appuie sur « Générer le PDF » pour recommencer.</p>`:`<p class="msg err">Enregistrement impossible (${esc(e&&e.code||"erreur")}).</p>`}
+      return;
+    }
+    // Appli DCRF : partage (iPhone : Enregistrer dans Fichiers, Mail, WhatsApp…) sinon téléchargement
+    const file=new File([blob],name,{type:"application/pdf"});
+    try{
+      if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});out.innerHTML=`<p class="msg">${esc(name)} prêt.</p>`;return}
+    }catch(e){if(e&&e.name==="AbortError"){out.innerHTML=`<p class="msg">Partage annulé. Appuie sur « Générer le PDF » pour recommencer.</p>`;return}}
+    const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),60000);
+    out.innerHTML=`<p class="msg">${esc(name)} téléchargé.</p>`;
+  })();
+}
+
+let Y=0,TOP=0;
+function ficheHeader(doc,f){
+  const W=210,L=15,R=195,M=105;
+  doc.addImage(LOGO,"JPEG",18,14,50,22.6);
+  T(doc,112,20,"Posable à partir du :",{b:false}); V(doc,148,20,fd(D.posable));
+  box(doc,112,28,D.paiement==="Comptant"); T(doc,117,28,"Comptant",{b:false});
+  T(doc,142,28,"Montant TTC :",{b:false}); V(doc,166,28,D.montant?D.montant+" €":"");
+  box(doc,112,36,D.paiement==="Financement"); T(doc,117,36,"Financement",{b:false});
+  if(D.paiement==="Financement")V(doc,140,36,D.organisme?"("+D.organisme+")":"",{s:8.5});
+  if(D.paiement==="Comptant"&&D.acompte)V(doc,140,36,"Acompte : "+D.acompte+" €",{s:8.5});
+  box(doc,124,43,D.frt==="FRT à faire signer"); T(doc,129,43,"FRT à faire signer",{b:false,s:8.5});
+  box(doc,161,43,D.frt==="FRT déjà signé"); T(doc,166,43,"FRT déjà signé",{b:false,s:8.5});
+  const title=f.name.toUpperCase().replace(" (PEINTURE)","").replace(" (ISOLATION EXTÉRIEURE)","");
+  doc.setFont("helvetica","bold");doc.setFontSize(14);doc.text(doc.splitTextToSize(title,170),W/2,56,{align:"center"});
+  doc.setLineWidth(.35);
+  let y=63; const top=y; const hl=(yy,a=L,b=R)=>doc.line(a,yy,b,yy), vl=(x,a,b)=>doc.line(x,a,x,b);
+  T(doc,L+2,y+6,"Date de la commande :",{b:false}); V(doc,L+40,y+6,fd(D.dateCmd));
+  T(doc,M+2,y+6,"N° Commande :",{b:false}); V(doc,M+27,y+6,D.numCmd);
+  if(f.tarif){T(doc,M+58,y+6,"Tarif HT :",{b:false,s:8.5});V(doc,M+73,y+6,D.tarifHT?D.tarifHT+" €":"",{s:8.5})}
+  y+=10; hl(y); vl(M,top,y);
+  let r=y; const def=D.datesDef==="À définir";
+  T(doc,L+2,y+5,"Date des travaux :"); if(def)V(doc,L+35,y+5,"à définir",{s:8.5});
+  T(doc,L+2,y+10,"du",{b:false}); V(doc,L+8,y+10,fd(D.du),{s:8.5}); T(doc,L+30,y+10,"au",{b:false}); V(doc,L+36,y+10,fd(D.au),{s:8.5});
+  T(doc,M+2,y+5,"Conseiller(s) Technique(s) :",{b:false}); V(doc,M+2,y+10,D.conseiller);
+  y+=13; hl(y);
+  T(doc,L+2,y+6,"Coordonnées client :"); V(doc,L+36,y+6,D.client,{w:52});
+  T(doc,L+2,y+12,"Adresse :",{b:false}); V(doc,L+18,y+12,D.adresse,{s:8.5,w:70}); V(doc,L+18,y+16.5,D.cpville,{s:8.5});
+  T(doc,L+2,y+22,"Tel :",{b:false}); V(doc,L+11,y+22,D.tel,{s:8.5});
+  T(doc,L+2,y+27,"Adresse mail :",{b:false}); V(doc,L+25,y+27,D.mail,{s:8.5,w:64});
+  T(doc,M+2,y+6,"Note particulière :",{b:false}); V(doc,M+2,y+11,D.note,{s:8.5,w:86});
+  hl(y+15,M,R);
+  T(doc,M+2,y+20,"Travaux à prévoir :",{b:false}); V(doc,M+2,y+25.5,D.travaux,{s:8.5,w:86});
+  y+=31; hl(y); vl(M,r,y);
+  Y=y; TOP=top;
+}
+function ficheBody(doc,f){
+  const L=15,R=195,M=105;let top=TOP;
+  const qs=f.steps.flatMap(s=>s.q);
+  const rows=[];for(let i=0;i<qs.length;i++){const q=qs[i];if(q.pair&&qs[i+1]&&qs[i+1].pair&&q.type!=="grid"){rows.push([q,qs[i+1]]);i++}else rows.push([q])}
+  const closeBox=()=>{doc.setLineWidth(.35);doc.rect(L,top,R-L,Y-top)};
+  rows.forEach(row=>{
+    if(row[0].type==="grid"){gridRow(doc,row[0],()=>{closeBox();doc.addPage();Y=15;top=15});return}
+    const w=row.length===1?R-L-6:(R-L)/2-6;
+    const cells=row.map(q=>({q,l:lines(doc,q.pl||q.t,w,9),v:lines(doc,show(q)||"-",w,9.5)}));
+    const h=Math.max(...cells.map(c=>c.l.length*4+c.v.length*4.4))+3.5;
+    if(Y+h>282){closeBox();doc.addPage();Y=15;top=15}
+    cells.forEach((c,i)=>{
+      const x0=row.length===1?L:(i?M:L), cx=row.length===1?(L+R)/2:x0+(R-L)/4;
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(0);doc.text(c.l,cx,Y+4.5,{align:"center"});
+      doc.setFontSize(9.5);doc.setTextColor(...BLUE);doc.text(c.v,cx,Y+4.5+c.l.length*4,{align:"center"});doc.setTextColor(0);
+    });
+    if(row.length===2){doc.setLineWidth(.35);doc.line(M,Y,M,Y+h)}
+    Y+=h;doc.setLineWidth(.35);doc.line(L,Y,R,Y);
+  });
+  closeBox();
+  if(Y<272)T(doc,105,Y+8,"Photos obligatoires + Croquis de la maison au verso",{s:10,c:1});
+}
+function gridRow(doc,q,newPage){
+  const L=15,R=195;const rows=(Array.isArray(D[q.id])?D[q.id]:[]).filter(r=>r&&r.some(Boolean));const n=Math.max(rows.length,1);
+  const h=7+n*5.5+2;if(Y+h>282)newPage();
+  T(doc,105,Y+5,q.pl||q.t,{s:9,c:1});
+  const cw=(R-L)/q.cols.length;let y=Y+7;
+  q.cols.forEach((c,i)=>{T(doc,L+cw*i+2,y+4,c,{s:8})});
+  doc.setLineWidth(.2);
+  for(let r=0;r<n;r++){y+=5.5;doc.line(L,y-4,R,y-4);q.cols.forEach((c,i)=>V(doc,L+cw*i+2,y+3.5,rows[r]?.[i]||"",{s:8.5,w:cw-3}))}
+  for(let i=1;i<q.cols.length;i++)doc.line(L+cw*i,Y+7,L+cw*i,y+3.5+2);
+  Y+=h;doc.setLineWidth(.35);doc.line(L,Y,R,Y);
+}
+
+function croquisTitre(doc){
+  doc.addImage(LOGO,"JPEG",12,10,32,14.5);
+  T(doc,105,20,"CROQUIS DE LA MAISON",{s:14,c:1});
+  T(doc,105,28,[D.client,[D.adresse,D.cpville].filter(Boolean).join(", "),D.numCmd&&"Commande "+D.numCmd].filter(Boolean).join("  -  "),{b:false,s:9,c:1});
+}
+function cote(doc,x1,y1,x2,y2,label,vert){doc.setDrawColor(...BLUE);doc.setLineWidth(.3);doc.line(x1,y1,x2,y2);
+  if(vert){doc.line(x1-1.5,y1,x1+1.5,y1);doc.line(x2-1.5,y2,x2+1.5,y2);V(doc,x1+2,(y1+y2)/2,label,{s:8.5})}
+  else{doc.line(x1,y1-1.5,x1,y1+1.5);doc.line(x2,y2-1.5,x2,y2+1.5);V(doc,(x1+x2)/2,y1+5,label,{s:8.5,c:1})}doc.setDrawColor(0)}
+function croquisBlanc(doc){
+  croquisTitre(doc);
+  doc.setDrawColor(215);doc.setLineWidth(.15);for(let x=15;x<=195;x+=5)doc.line(x,36,x,270);for(let y=36;y<=270;y+=5)doc.line(15,y,195,y);
+  doc.setDrawColor(0);doc.setLineWidth(.4);doc.rect(15,36,180,234);
+  T(doc,105,278,"Croquis à dessiner sur place (1 carreau = 50 cm conseillé)",{b:false,s:8.5,c:1});
+}
+function croquisFacade(doc){
+  croquisTitre(doc);
+  const lf=numv(D.lgFacade)||12,hf=numv(D.hFacade)||3,lp=numv(D.lgPignons)||8,hp=numv(D.hPignons)||hf,hpt=numv(D.hPointe)||hp+2.5;
+  const sc=Math.min(150/(lf+lp+3),70/hpt), base=130;
+  T(doc,15,42,"Élévations (façade principale et pignon)",{s:11});
+  doc.setLineWidth(.6);
+  const x1=20; doc.rect(x1,base-hf*sc,lf*sc,hf*sc);
+  doc.line(x1-2,base-hf*sc,x1+lf*sc+2,base-hf*sc);
+  T(doc,x1+lf*sc/2,base-hf*sc/2,"FAÇADE",{b:false,s:9,c:1});
+  cote(doc,x1,base+6,x1+lf*sc,base+6,"Longueur "+(D.lgFacade?show({id:"lgFacade",type:"num",u:"m"}):"? m"));
+  cote(doc,x1-5,base,x1-5,base-hf*sc,"",true);V(doc,x1-4,base-hf*sc-3,"H "+(D.hFacade||"?")+" m",{s:8.5});
+  const x2=x1+lf*sc+3*sc+8;
+  doc.rect(x2,base-hp*sc,lp*sc,hp*sc);
+  doc.line(x2,base-hp*sc,x2+lp*sc/2,base-hpt*sc);doc.line(x2+lp*sc/2,base-hpt*sc,x2+lp*sc,base-hp*sc);
+  T(doc,x2+lp*sc/2,base-hp*sc/2,"PIGNON",{b:false,s:9,c:1});
+  cote(doc,x2,base+6,x2+lp*sc,base+6,"Longueur "+(D.lgPignons||"?")+" m");
+  cote(doc,x2+lp*sc+5,base,x2+lp*sc+5,base-hpt*sc,"Pointe "+(D.hPointe||"?")+" m",true);
+  doc.setLineWidth(1);doc.line(10,base,200,base);
+  const s=numv(D.surface);
+  T(doc,15,155,"Infos chantier",{s:11});
+  const info=[
+    s?`Surface : ${D.surface} m²`:"",
+    D.support?"Support : "+D.support:"", D.application?"Application : "+D.application:"", D.typeIso?"Isolation : "+D.typeIso:"",
+    D.teinteMaison?"Teinte maison : "+D.teinteMaison:"", D.teinteEnduit?"Teinte enduit : "+D.teinteEnduit:"",
+    D.gouttieres==="Oui"?`Gouttières ${D.typeGouttiere||""} - ${D.hGouttiere||""}`:"",
+    D.store&&D.store!=="Non"?"Store-banne : "+D.store:"", D.veranda==="Oui"?"Véranda : oui":"",
+    D.note?"Note : "+D.note:"",
+    "Croquis indicatif à partir des métrages saisis. Compléter sur place : ouvertures, descentes, compteurs.",
+  ].filter(Boolean);
+  info.forEach((l,i)=>T(doc,18,163+i*5.5,l,{b:false,s:9}));
+  doc.setDrawColor(215);doc.setLineWidth(.15);for(let x=15;x<=195;x+=5)doc.line(x,228,x,280);for(let y=228;y<=280;y+=5)doc.line(15,y,195,y);doc.setDrawColor(0);
+  T(doc,15,225,"Notes / plan de masse",{s:9});
+}
+function croquisToit(doc){
+  croquisTitre(doc);
+  const W=210, S=numv(D.surface)||100, pente=numv(D.pente)||35, F=numv(D.lgFaitage)||10;
+  const quatre=/4 pans|Pas de pignon/i.test(D.pignon||"");
+  const ramp=S/2/F, half=ramp*Math.cos(pente*Math.PI/180), roofH=ramp*Math.sin(pente*Math.PI/180);
+  const pign=numv(D.pignon), wallH=Math.max(2.3,(pign||roofH+2.6)-roofH), totalH=wallH+roofH;
+  T(doc,15,40,"1. Vue pignon (coupe)",{s:11});
+  const sc=Math.min(110/(2*half+2),70/totalH), ox=W/2, oy=118, hw=half*sc, wh=wallH*sc, rh=roofH*sc;
+  doc.setLineWidth(.6);doc.setDrawColor(0);doc.rect(ox-hw,oy-wh,2*hw,wh);
+  doc.line(ox-hw-4,oy-wh+1.5,ox,oy-wh-rh);doc.line(ox,oy-wh-rh,ox+hw+4,oy-wh+1.5);
+  doc.setLineWidth(1);doc.line(ox-hw-22,oy,ox+hw+22,oy);
+  doc.setFillColor(...BLUE);doc.circle(ox,oy-wh-rh,1.3,"F");
+  V(doc,ox+3,oy-wh-rh-2,"Faîtage "+(D.faitage||"")+(D.lgFaitage?" - "+D.lgFaitage:"")+(D.crochets==="Oui"?" - crochets à prévoir":""),{s:8});
+  if(D.gouttieres==="Oui"){doc.setLineWidth(.4);doc.circle(ox-hw-4,oy-wh+.5,1.2);doc.circle(ox+hw+4,oy-wh+.5,1.2);
+    V(doc,ox-hw-34,oy-wh,"Gouttière "+(D.typeGouttiere||""),{s:8});V(doc,ox+hw+7,oy-wh,"Gouttière "+(D.typeGouttiere||""),{s:8})}
+  V(doc,ox-hw+4,oy-wh-2,D.pente||pente+"°",{s:9});
+  doc.setTextColor(110);doc.setFont("helvetica","normal");doc.setFontSize(8);
+  doc.text([D.maison||"",D.mitoyenne&&D.mitoyenne!=="Non"?"Mitoyenne : "+D.mitoyenne:""].filter(Boolean),ox,oy-wh/2,{align:"center"});doc.setTextColor(0);
+  const cx=ox+hw+20; cote(doc,cx,oy,cx,oy-wh-rh,pign?"Pignon "+D.pignon:"H. env. "+totalH.toFixed(1)+" m",true);
+  cote(doc,ox-hw,oy+7,ox+hw,oy+7,"Largeur env. "+(2*half).toFixed(1).replace(".",",")+" m (à vérifier)");
+  V(doc,ox-hw-20,oy-wh-rh/2-4,"rampant env. "+ramp.toFixed(1).replace(".",",")+" m",{s:8});
+  T(doc,15,145,"2. Vue de dessus (plan de toiture)",{s:11});
+  const ps=Math.min(130/F,60/(2*half)), pw=F*ps, ph=2*half*ps, px=W/2-pw/2, py=155;
+  doc.setLineWidth(.6);doc.rect(px,py,pw,ph);
+  doc.setLineDashPattern([2,1.2],0);
+  if(quatre){const ins=Math.min(ph/2,pw/4);doc.line(px,py,px+ins,py+ph/2);doc.line(px,py+ph,px+ins,py+ph/2);doc.line(px+pw,py,px+pw-ins,py+ph/2);doc.line(px+pw,py+ph,px+pw-ins,py+ph/2);doc.line(px+ins,py+ph/2,px+pw-ins,py+ph/2)}
+  else{doc.line(px,py+ph/2,px+pw,py+ph/2);T(doc,px+pw+2,py+ph/2+1,"Pignon",{b:false,s:8});T(doc,px-13,py+ph/2+1,"Pignon",{b:false,s:8})}
+  doc.setLineDashPattern([],0);
+  V(doc,W/2,py+ph/2-1.5,"FAÎTAGE"+(D.faitage?" ("+D.faitage.replace("Oui, ","")+")":""),{s:8,c:1});
+  const couv=D.support||D.couverture, prod=D.hydro?"Hydrofuge "+D.hydro.toUpperCase()+(D.hydro==="Coloré"&&D.teinte?" "+D.teinte:""):fiche().name;
+  const pan=quatre?"":(D.surface?"Pan env. "+Math.round(S/2)+" m²":"");
+  [py+ph*0.25,py+ph*0.75].forEach(yy=>{T(doc,W/2,yy-2,[pan,couv].filter(Boolean).join(" - "),{b:false,s:8,c:1});V(doc,W/2,yy+2.5,prod,{s:8,c:1})});
+  const els=[],n=k=>parseInt(D[k])||0;
+  for(let i=0;i<n("velux");i++)els.push(["V",[214,231,250]]);for(let i=0;i<n("cheminees");i++)els.push(["C",[235,200,190]]);for(let i=0;i<n("chiens");i++)els.push(["CA",[230,230,200]]);
+  els.forEach(([l,c],i)=>{const ex=px+8+i*14,ey=py+ph*0.75+6;if(ex+9>px+pw)return;doc.setFillColor(...c);doc.rect(ex,ey,9,6,"FD");T(doc,ex+4.5,ey+4.2,l,{s:7,c:1})});
+  if(D.gouttieres==="Oui"){doc.setDrawColor(...BLUE);doc.setLineWidth(1.2);doc.line(px,py-1,px+pw,py-1);doc.line(px,py+ph+1,px+pw,py+ph+1);doc.setDrawColor(0);
+    V(doc,px+pw+3,py,"Gouttière",{s:8});V(doc,px+pw+3,py+ph+2,"Gouttière",{s:8})}
+  cote(doc,px,py+ph+7,px+pw,py+ph+7,"Faîtage "+(D.lgFaitage||F+" ml (estimé)"));
+  T(doc,W/2,py+ph+19,`${D.surface?"Surface "+D.surface+" m²  -  ":""}${D.velux||0} Vélux (V), ${D.cheminees||0} cheminée (C), ${D.chiens||0} chien assis (CA)  -  chatières : ${D.chatieres||"-"}`,{b:false,s:8,c:1});
+  const by=255;doc.setLineWidth(.4);doc.rect(15,by-8,180,35);T(doc,18,by-2,"Infos pose",{s:10});
+  [`Maison ${D.mitoyenne&&D.mitoyenne!=="Non"?"mitoyenne ("+D.mitoyenne.replace("Oui, ","")+")":"non mitoyenne"}, véranda : ${D.veranda||"-"}${D.robinets!==undefined?" - "+(D.robinets||0)+" robinet(s) ext. + "+(D.prises||0)+" prise(s) ext.":""}`,
+   `Pente ${D.pente||"-"} - faîtage ${(D.faitage||"-").toLowerCase()} - crochets de faîtage : ${D.crochets||"-"} - rives : ${D.rives||"-"}`,
+   D.note?"Note : "+D.note:"",
+   "Croquis indicatif : largeur et rampant déduits de la surface, du faîtage et de la pente. À vérifier sur place."]
+   .filter(Boolean).forEach((l,i)=>T(doc,18,by+4+i*5,l,{b:false,s:8}));
+}
+render();
+</script>
+
+</body></html>

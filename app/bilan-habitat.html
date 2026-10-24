@@ -1,0 +1,283 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><a href="../" onclick="history.back();return false" class="dcrf-back" style="display:flex;align-items:center;gap:6px;padding:10px 16px;font:600 15px system-ui,-apple-system,sans-serif;color:#3c8219;background:#ffffff;border-bottom:1px solid #e2e9e4;text-decoration:none;margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px)))">&#8249;&nbsp;Appli DCRF</a>
+<title>Bilan habitat DCRF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one A4-proportioned sheet, navy section bands, 6-column field grid that collapses on phone */
+:root{
+  --bg:#eceeec; --sheet:#ffffff; --ink:#1c2024; --muted:#5f666d; --line:#bcc3bd;
+  --navy:#3a3f45; --navy-ink:#ffffff; --accent:#4f9e3c; --field:#f5f7f4; --green:#62b14c; --logo-ink:#4a4d52;
+  --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121513; --sheet:#1b1f1d; --ink:#e6eae6; --muted:#9aa39c; --line:#3a423c;
+  --navy:#2f3a33; --navy-ink:#ffffff; --accent:#79c765; --field:#232925; --green:#79c765; --logo-ink:#e6eae6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121513; --sheet:#1b1f1d; --ink:#e6eae6; --muted:#9aa39c; --line:#3a423c;
+  --navy:#2f3a33; --navy-ink:#ffffff; --accent:#79c765; --field:#232925; --green:#79c765; --logo-ink:#e6eae6; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;padding-inline:16px;padding-block:16px 40px}
+.sheet{max-width:860px;margin:0 auto;background:var(--sheet);padding:32px 36px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+/* toolbar */
+.bar{max-width:860px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.bar .status{color:var(--muted);font-size:13px}
+.bar .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:600 14px var(--body);border-radius:6px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--sheet);color:var(--ink)}
+button.danger{background:var(--accent);border-color:var(--accent);color:#fff}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+header{display:grid;grid-template-columns:1fr auto;gap:12px 24px;align-items:end;border-bottom:3px solid var(--green);padding-bottom:14px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:190px;height:auto;flex:none;display:block}
+.logo text,.logo path,.logo rect{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.brand small{display:block;font:500 13px/1.3 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ref{display:grid;gap:6px;min-width:200px}
+h1{grid-column:1/-1;font:700 26px/1.15 var(--display);text-transform:uppercase;letter-spacing:.02em;margin:10px 0 0;text-wrap:balance}
+
+/* sections */
+section{margin-top:18px;break-inside:avoid}
+h2{font:600 14px var(--display);letter-spacing:.12em;text-transform:uppercase;background:var(--navy);color:var(--navy-ink);margin:0 0 10px;padding:5px 12px;display:flex;justify-content:space-between}
+h2 span{opacity:.6;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px 18px;align-items:end}
+.s2{grid-column:span 2}.s3{grid-column:span 3}.s4{grid-column:span 4}.s6{grid-column:span 6}
+
+.f{display:flex;align-items:baseline;gap:8px;min-width:0}
+.f label,.g .lab{font-weight:500;white-space:nowrap;color:var(--ink)}
+.f .in{flex:1;display:flex;align-items:baseline;gap:4px;min-width:0}
+input[type=text],input[type=number],input[type=tel],input[type=date],input[type=email]{
+  flex:1;min-width:40px;width:100%;font:15px var(--body);color:var(--ink);background:var(--field);
+  border:0;border-bottom:1.5px solid var(--line);padding:5px 6px;border-radius:3px 3px 0 0}
+.unit{color:var(--muted);font-size:13px}
+
+.g{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;min-width:0}
+.g .lab{margin-right:4px}
+.chk{display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0}
+.chk input{appearance:none;-webkit-appearance:none;width:18px;height:18px;border:1.5px solid var(--ink);border-radius:2px;margin:0;display:grid;place-items:center;background:var(--sheet);flex:none}
+.chk input:checked{background:var(--navy);border-color:var(--navy)}
+.chk input:checked::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+.g input.other{flex:1;min-width:90px}
+
+/* losses */
+.loss{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 20px}
+.loss div{display:grid;grid-template-columns:96px 1fr 40px;align-items:center;gap:8px;font-size:13px}
+.loss b{height:10px;background:var(--line);border-radius:2px;position:relative;overflow:hidden}
+.loss b::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--w);background:var(--navy)}
+.loss em{font-style:normal;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:12px;margin:6px 0 0}
+
+/* DPE */
+.dpe{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:20px;align-items:start}
+.scale{display:grid;gap:3px}
+.cls{display:flex;align-items:center;height:26px;color:#fff;font:600 13px var(--display);padding:0 10px;cursor:pointer;border:0;border-radius:0;justify-content:space-between;clip-path:polygon(0 0,calc(100% - 13px) 0,100% 50%,calc(100% - 13px) 100%,0 100%);text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cls strong{font-size:17px;margin-right:6px}
+.cls.on{outline:none;box-shadow:inset 0 0 0 3px var(--ink)}
+.cls.on::after{content:"◀";color:var(--ink)}
+.scale .cls{position:relative}
+.dpe-side{display:grid;gap:12px}
+.result{font:700 34px/1 var(--display);color:var(--navy)}
+.result small{display:block;font:500 13px var(--body);color:var(--muted);margin-top:4px}
+
+textarea{width:100%;min-height:140px;font:15px/28px var(--body);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:0 8px;resize:vertical;
+  background:var(--field) repeating-linear-gradient(transparent 0 27px,var(--line) 27px 28px)}
+.sol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1.5px solid var(--ink);margin-bottom:10px}
+.sol input{border:0!important;border-right:1px solid var(--ink)!important;border-bottom:1px solid var(--ink)!important;border-radius:0!important;height:54px;text-align:center;font-weight:600}
+.sol input:nth-child(3n){border-right:0!important}.sol input:nth-child(n+4){border-bottom:0!important}
+.sign{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.sign div{border:1px solid var(--line);height:90px;padding:6px 8px;font-size:12px;color:var(--muted)}
+footer{margin-top:22px;padding-top:8px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+
+@media (max-width:640px){
+  .sheet{padding:20px 16px}
+  .grid{grid-template-columns:1fr}
+  .s2,.s3,.s4,.s6{grid-column:auto}
+  .f{flex-wrap:wrap}
+  header{grid-template-columns:1fr}
+  .logo{width:150px}
+  .loss{grid-template-columns:1fr}
+  .dpe{grid-template-columns:1fr}
+  .sign{grid-template-columns:1fr}
+}
+
+@page{size:A4;margin:11mm 12mm}
+@media print{
+  :root{--bg:#fff;--sheet:#fff;--ink:#111;--muted:#555;--line:#888;--navy:#3a3f45;--accent:#4f9e3c;--field:transparent;--green:#62b14c;--logo-ink:#4a4d52;color-scheme:light}
+  body{padding:0;font-size:11.5px;background:#fff}
+  .bar{display:none}
+  .sheet{box-shadow:none;padding:0;max-width:none}
+  h2,.chk input:checked,.loss b::before{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  input[type=text],input[type=number],input[type=tel],input[type=date]{background:transparent;padding:2px 4px;font-size:12px;border-bottom:1px solid #777}
+  input[type=date]::-webkit-calendar-picker-indicator{display:none}
+  .chk input{width:13px;height:13px}
+  section{margin-top:11px}
+  .grid{gap:7px 16px}
+  textarea{background:repeating-linear-gradient(transparent 0 27px,#999 27px 28px);border:0;min-height:196px}
+  .pb{break-before:page}
+  .sol input{height:44px}
+  .result small{display:none}
+  textarea{resize:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="bar">
+  <div class="status" id="status">Les saisies restent sur cet appareil.</div>
+  <div class="actions" id="actions">
+    <button type="button" id="resetBtn">Nouveau bilan</button>
+  </div>
+</div>
+
+<form class="sheet" id="form" autocomplete="off">
+  <header>
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 250 112" role="img" aria-label="DCRF Rénovation d'habitat">
+        <path d="M14 98 V46 L66 10 L116 38" fill="none" stroke="var(--green)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M14 98 H34" fill="none" stroke="var(--green)" stroke-width="9" stroke-linecap="round"/>
+        <text x="34" y="84" font-family="'Barlow Semi Condensed','Arial Narrow',Arial,sans-serif" font-weight="700" font-size="62" textLength="160" lengthAdjust="spacingAndGlyphs" fill="var(--logo-ink)">DCRF</text>
+        <rect x="184" y="46" width="8" height="11" fill="#1f4fa3"/><rect x="192" y="46" width="8" height="11" fill="#ffffff" stroke="var(--line)" stroke-width=".5"/><rect x="200" y="46" width="8" height="11" fill="#d7262f"/>
+        <text x="40" y="104" font-family="'Barlow Semi Condensed','Arial Narrow',Arial,sans-serif" font-weight="600" font-size="15.5" textLength="168" lengthAdjust="spacingAndGlyphs" fill="var(--logo-ink)">RÉNOVATION D'HABITAT</text>
+      </svg>
+      <small>DH Concept &amp;<br>Rénovation Française</small>
+    </div>
+    <div class="ref">
+      <div class="f"><label for="ref_date">Date</label><div class="in"><input type="text" id="ref_date" inputmode="numeric"></div></div>
+      <div class="f"><label for="ref_num">N° dossier</label><div class="in"><input type="text" id="ref_num"></div></div>
+    </div>
+    <h1>Bilan de conformité et sécurité de la maison</h1>
+  </header>
+
+  <div id="sections"></div>
+
+  <section>
+    <h2>Déperditions majeures d'une maison <span>%</span></h2>
+    <div class="loss">
+      <div>Toiture<b style="--w:100%"></b><em>30 %</em></div>
+      <div>Murs<b style="--w:83%"></b><em>25 %</em></div>
+      <div>Fuites d'air<b style="--w:67%"></b><em>20 %</em></div>
+      <div>Vitres<b style="--w:43%"></b><em>13 %</em></div>
+      <div>Sol<b style="--w:23%"></b><em>7 %</em></div>
+      <div>Ponts thermiques<b style="--w:17%"></b><em>5 %</em></div>
+    </div>
+    <p class="note">Principales sources de déperdition thermique d'une maison non isolée.</p>
+  </section>
+
+  <section>
+    <h2>Diagnostic de performance énergétique (DPE) <span>kWh/m²·an</span></h2>
+    <div class="dpe">
+      <div class="scale" id="scale"></div>
+      <div class="dpe-side">
+        <div class="f"><label for="dpe_val">Consommation</label><div class="in"><input type="number" id="dpe_val" inputmode="numeric"><span class="unit">kWh/m²·an</span></div></div>
+        <div class="f"><label for="dpe_ges">Émissions</label><div class="in"><input type="number" id="dpe_ges" inputmode="numeric"><span class="unit">kg CO₂/m²·an</span></div></div>
+        <div class="result" id="dpeRes">Classe —<small>Touchez une classe ou saisissez la consommation.</small></div>
+        <p class="note">Seuils énergie du DPE en vigueur depuis juillet 2021. La classe officielle retient la plus mauvaise des deux étiquettes (énergie et émissions).</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Commentaires et explications</h2>
+    <textarea id="comments" aria-label="Commentaires et explications"></textarea>
+  </section>
+
+  <section>
+    <h2>Solutions proposées</h2>
+    <div class="sol" id="sol"></div>
+    <textarea id="solutions" aria-label="Détail des solutions proposées"></textarea>
+  </section>
+
+  <section>
+    <h2>Validation</h2>
+    <div class="sign">
+      <div>Signature du technicien</div>
+      <div>Signature du client, précédée de « lu et approuvé »</div>
+    </div>
+  </section>
+
+  <footer><span>DCRF · DH Concept &amp; Rénovation Française</span><span>Bilan de conformité et sécurité</span></footer>
+</form>
+
+<script>
+const ON=["Oui","Non"];
+const T=(l,s=3,type="text",u="")=>({k:"t",l,s,type,u});
+const C=(l,o,s=3,other=false)=>({k:"c",l,o,s,other});
+const S=[
+ ["Visite du technicien",[T("Nom"),T("Prénom"),T("Âge Monsieur",3,"number"),T("Âge Madame",3,"number"),T("Adresse",6),T("Ville"),T("Code postal",3,"text"),T("Téléphone",3,"tel"),T("Situation professionnelle")]],
+ ["Construction",[T("Constructeur",2),T("Surface habitable",2,"number","m²"),T("Année de construction",2,"number"),T("Nombre de pièces",2,"number"),T("Personnes au foyer",2,"number"),T("Dont enfants",2,"number"),T("Type d'énergie",2),T("Température demandée",2,"number","°C"),T("Conso. annuelle",2,"number","kWh")]],
+ ["Grenier",[C("Types de combles",["Perdus","Aménagés"]),C("Accès",["Trappe","Échelle"],3,true),T("Isolation existante"),T("Épaisseur",3,"number","cm"),C("État",["Origine","Rénové"]),T("Année",3,"number"),C("Isolation sous rampant",ON),T("Année",3,"number")]],
+ ["Structure de la maison",[C("Murs extérieurs",["Parpaing","Brique","Pierre"],4,true),T("Année",2,"number"),C("Isolation extérieure",["Origine","Rénové"]),T("Année",3,"number"),C("Isolation des murs",ON),T("Année",3,"number"),C("Peinture isolante murs",ON),T("Année",3,"number")]],
+ ["Les ouvertures",[C("Types d'ouverture",["Origine","Rénovée"]),C("Si rénovée",["PVC","Alu","Bois","Velux"]),C("Vitrage",["Survitrage","Double vitrage"]),T("Année",3,"number")]],
+ ["Les fermetures",[C("Types de fermeture",["Origine","Rénovée"]),C("Matériaux",["PVC","Alu","Bois"]),C("Si rénovée",["V. roulants","V. battants","Persiennes","Velux"],6)]],
+ ["Chauffage",[C("Types de chauffage",["Chaudière","Convecteur","PAC","Cheminée"],4),T("Année",2,"number"),T("Type / modèle",6),C("Production d'eau chaude",["Ballon thermodynamique","Ballon électrique","Intégré à la chaudière"],6),T("Année",3,"number"),C("Anti-tartre",ON)]],
+ ["Ossature de la maison",[C("Types de charpente",["Traditionnelle","Américaine"],6,true),C("Entretien",ON),T("Année",3,"number"),C("HPV pare-pluie / pare-vent",ON),T("Année",3,"number"),C("Traitement anti-feu",ON,6)]],
+ ["Couverture de la maison",[C("Types de toiture",["Ardoise","Tuile"],6,true),C("État",["Origine","Rénové","Nettoyé"]),T("Année",3,"number"),T("Surface de la toiture",3,"number","m²"),T("Année",3,"number")]],
+ ["Gouttières",[C("Type de gouttières",["Zinc","PVC","Alu"]),C("État",["Bon état","Vétuste","Percé"])]],
+ ["Ventilation",[C("Système",["VMC SF","VMC DF","VMI","Aucune"],6),C("Fonctionnement",ON,2),C("Entretien",ON,2),T("Année",2,"number")]],
+ ["Humidité",[T("Hygrométrie des combles",3,"number","%"),T("Hygrométrie des murs",3,"number","%"),C("IPE",ON),C("Extracteur d'air",ON)]],
+ ["Sous-sol",[C("Isolé",ON),T("Type d'isolation")]],
+ ["Tableau électrique",[C("Compteur d'origine",ON),C("Linky",ON),C("Type de tableau",["Plomb","Disjoncteur","Porcelaine"],4),T("Année",2,"number"),C("Régulateur de tension",ON),C("Normes NF C 15-100",ON),T("Facture d'énergie",6,"number","€ / an")]]
+];
+const slug=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+let html="";
+S.forEach(([title,items],si)=>{
+  const p=slug(title);
+  html+=`<section><h2>${esc(title)}</h2><div class="grid">`;
+  items.forEach((it,ii)=>{
+    const id=`${p}_${ii}_${slug(it.l)}`;
+    if(it.k==="t"){
+      const im=it.type==="number"?' inputmode="decimal"':'';
+      const ty=it.type==="number"?"text":it.type;
+      html+=`<div class="f s${it.s}"><label for="${id}">${esc(it.l)}</label><div class="in"><input type="${ty}" id="${id}"${im}>${it.u?`<span class="unit">${it.u}</span>`:""}</div></div>`;
+    }else{
+      html+=`<div class="g s${it.s}" role="group" aria-label="${esc(it.l)}"><span class="lab">${esc(it.l)}</span>`;
+      it.o.forEach(o=>{html+=`<label class="chk"><input type="checkbox" id="${id}_${slug(o)}">${esc(o)}</label>`});
+      if(it.other) html+=`<label class="chk" for="${id}_autre">Autre</label><input type="text" class="other" id="${id}_autre" aria-label="${esc(it.l)} – autre">`;
+      html+=`</div>`;
+    }
+  });
+  html+=`</div></section>`;
+});
+document.getElementById("sections").innerHTML=html;
+
+// solutions grid
+document.getElementById("sol").innerHTML=[1,2,3,4,5,6].map(n=>`<input type="text" id="sol_${n}" aria-label="Solution ${n}">`).join("");
+
+// DPE scale (seuils énergie 2021)
+const D=[["A","≤ 70",0,70,"#009c6d"],["B","71 à 110",71,110,"#52b153"],["C","111 à 180",111,180,"#78bd76"],["D","181 à 250",181,250,"#d1b000"],["E","251 à 330",251,330,"#f0a000"],["F","331 à 420",331,420,"#eb6a1f"],["G","> 420",421,1e9,"#d7221f"]];
+const sc=document.getElementById("scale");
+sc.innerHTML=D.map((d,i)=>`<button type="button" class="cls" data-c="${d[0]}" style="background:${d[4]};width:${48+i*8}%"><span><strong>${d[0]}</strong>${d[1]}</span></button>`).join("");
+let dpeClass="";
+function showDpe(){
+  sc.querySelectorAll(".cls").forEach(b=>b.classList.toggle("on",b.dataset.c===dpeClass));
+  const v=document.getElementById("dpe_val").value;
+  document.getElementById("dpeRes").innerHTML=dpeClass?`Classe ${dpeClass}<small>${v?v+" kWh/m²·an":"Classe sélectionnée manuellement"}</small>`:`Classe —<small>Touchez une classe ou saisissez la consommation.</small>`;
+}
+sc.addEventListener("click",e=>{const b=e.target.closest(".cls");if(!b)return;dpeClass=dpeClass===b.dataset.c?"":b.dataset.c;showDpe();save()});
+document.getElementById("dpe_val").addEventListener("input",e=>{
+  const v=parseFloat(e.target.value);
+  if(!isNaN(v)){const d=D.find(d=>v<=d[3]);dpeClass=d?d[0]:"G"}
+  showDpe();
+});
+
+// storage (per device)
+const KEY="dcrf-bilan-v1",form=document.getElementById("form"),st=document.getElementById("status");
+function collect(){const o={_dpe:dpeClass};form.querySelectorAll("input,textarea").forEach(el=>{if(!el.id)return;o[el.id]=el.type==="checkbox"?el.checked:el.value});return o}
+function apply(o){form.querySelectorAll("input,textarea").forEach(el=>{if(!el.id||!(el.id in o))return;if(el.type==="checkbox")el.checked=!!o[el.id];else el.value=o[el.id]});dpeClass=o._dpe||"";showDpe()}
+let t;function save(){clearTimeout(t);t=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(collect()));st.textContent="Brouillon enregistré sur cet appareil · "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}catch(e){st.textContent="Enregistrement automatique indisponible dans ce navigateur."}},400)}
+form.addEventListener("input",save);form.addEventListener("change",save);form.addEventListener("submit",e=>e.preventDefault());
+try{const s=localStorage.getItem(KEY);if(s)apply(JSON.parse(s))}catch(e){}
+showDpe();
+
+// reset with inline confirmation
+const acts=document.getElementById("actions");
+function bar(){acts.innerHTML='<button type="button" id="resetBtn">Nouveau bilan</button>';document.getElementById("resetBtn").onclick=ask}
+function ask(){acts.innerHTML='<span class="status">Effacer toutes les saisies ?</span><button type="button" id="no">Annuler</button><button type="button" class="danger" id="yes">Effacer</button>';
+  document.getElementById("no").onclick=bar;
+  document.getElementById("yes").onclick=()=>{form.reset();dpeClass="";showDpe();try{localStorage.removeItem(KEY)}catch(e){}st.textContent="Nouveau bilan vierge.";bar()}}
+bar();
+</script>
+
+</body></html>

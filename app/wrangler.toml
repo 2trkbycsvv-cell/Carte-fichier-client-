@@ -1,0 +1,9 @@
+# Configuration Cloudflare de l'appli DCRF
+name = "dcrf"
+pages_build_output_dir = "."
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dcrf"
+database_id = "d0c78f26-fd79-4fe4-ba4a-85418121b9c3"
