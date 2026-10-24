@@ -1,7 +1,10 @@
-# Configuration Cloudflare de l'appli DCRF
 name = "dcrf"
-pages_build_output_dir = "."
+main = "_worker.js"
 compatibility_date = "2026-10-01"
+
+[assets]
+directory = "."
+binding = "ASSETS"
 
 [[d1_databases]]
 binding = "DB"
