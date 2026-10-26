@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Appli DCRF</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DCRF">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+</head>
+<body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+/* Appli DCRF — version claire : fond blanc lumineux, vert DCRF, bleu de la marque pour la direction.
+   Thème volontairement clair uniquement (appli de terrain, lisible en plein jour). */
+:root{
+  --bg:#f4f7f5; --panel:#ffffff; --panel2:#f1f5f2; --line:#e2e9e4; --fg:#13241b; --muted:#5d6e66;
+  --accent:#4a9a22; --accent-strong:#3c8219; --accent-ink:#ffffff; --accent-soft:#ebf6e3;
+  --brand-blue:#1f4fa3; --blue-soft:#e8eff9;
+  --ok:#1e8a55; --ok-soft:#e1f4e9; --warn:#a06400; --warn-soft:#fdf3df; --bad:#c23b2a; --bad-soft:#fbe7e3; --info:#2563b8; --info-soft:#e6eefa;
+  --top:#ffffff; --top-ink:#13241b;
+  --shadow:0 1px 2px rgba(19,36,27,.04),0 6px 18px rgba(19,36,27,.06);
+  --shadow-lg:0 2px 4px rgba(19,36,27,.04),0 14px 34px rgba(19,36,27,.08);
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --f-disp:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+  --nav-h:64px;
+  color-scheme:light;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%;font-variant-numeric:tabular-nums}
+body{min-height:100dvh}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-disp);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance}
+
+/* ---------- Charpente ---------- */
+.top{position:sticky;top:0;z-index:20;background:var(--top);color:var(--top-ink);display:flex;align-items:center;gap:12px;
+  padding:calc(8px + var(--sat)) max(16px,var(--sar)) 8px max(16px,var(--sal))}
+.brand{display:flex;color:var(--top-ink);flex:none}
+.brand svg{height:34px;width:auto;display:block}
+.title{font-size:20px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me{width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:var(--top-ink);font-weight:700;font-size:14px;cursor:pointer;flex:none}
+
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--panel);border-top:1px solid var(--line);display:flex;
+  padding:6px max(8px,var(--sar)) calc(6px + var(--sab)) max(8px,var(--sal))}
+.nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:600;padding:4px 0;border-radius:10px;min-width:0}
+.nav a svg{width:24px;height:24px}
+.nav a[aria-current="page"]{color:var(--accent)}
+.nav a.plus span.ic{width:46px;height:46px;border-radius:14px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin-top:-14px;box-shadow:0 4px 14px rgba(79,138,31,.35)}
+.nav a.plus span.ic svg{width:26px;height:26px}
+.nav .dot{position:absolute;margin-left:18px;margin-top:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--bad);color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center}
+.nav a{position:relative}
+
+.main{padding:16px max(16px,var(--sar)) calc(var(--nav-h) + 28px + var(--sab)) max(16px,var(--sal));max-width:980px;margin:0 auto;outline:none}
+
+@media (min-width:900px){
+  .app{display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-rows:auto 1fr;min-height:100dvh}
+  .top{grid-column:1/-1}
+  .nav{position:sticky;top:58px;align-self:start;flex-direction:column;gap:4px;border-top:0;border-right:1px solid var(--line);height:calc(100dvh - 58px);padding:16px 10px;background:var(--panel)}
+  .nav a{flex:none;flex-direction:row;gap:10px;font-size:15px;padding:10px 12px}
+  .nav a[aria-current="page"]{background:var(--accent-soft);color:var(--fg)}
+  .nav a.plus{order:-1;margin-bottom:8px}
+  .nav a.plus span.ic{width:30px;height:30px;margin:0;border-radius:9px;box-shadow:none}
+  .nav a.plus span.ic svg{width:20px;height:20px}
+  .nav a.plus{background:var(--accent);color:var(--accent-ink)}
+  .nav .dot{position:static;margin-left:auto}
+  .main{padding:24px 28px 48px;width:100%}
+}
+
+/* ---------- Éléments ---------- */
+.stack{display:grid;gap:16px}
+.hello{display:grid;gap:4px}
+.hello h2{font-size:30px;line-height:1.05}
+.hello p{margin:0;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);min-width:0}
+.card.soft{background:var(--panel2);box-shadow:none}
+.card.callout{border-left:4px solid var(--accent)}
+.card.callout.warn{border-left-color:var(--warn)}
+.card h3{font-size:19px;margin-bottom:4px}
+.card p{margin:0}
+.sec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:6px}
+.sec h2{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--f-body);font-weight:700}
+.sec a,.link{font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;background:none;border:0;padding:0;cursor:pointer}
+.muted{color:var(--muted)}
+.small{font-size:13.5px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--line);background:var(--panel);border-radius:12px;padding:11px 16px;font-weight:700;font-size:15px;cursor:pointer;min-height:46px;text-decoration:none;color:var(--fg)}
+.btn svg{width:20px;height:20px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.block{width:100%}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:14px;border-radius:10px}
+.btn:disabled{opacity:.5;cursor:default}
+
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.stat b{display:block;font-family:var(--f-disp);font-size:clamp(20px,6vw,26px);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat span{font-size:12.5px;color:var(--muted);font-weight:600}
+
+.quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.qa{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);background:var(--panel);border-radius:12px;padding:12px;font-weight:700;cursor:pointer;text-align:left;min-height:56px}
+.qa i{width:10px;height:10px;border-radius:50%;flex:none}
+
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:10px}
+.tool{display:grid;grid-template-columns:44px minmax(0,1fr);gap:4px 12px;align-items:center;text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow);color:var(--fg);transition:border-color .15s,transform .15s}
+.tool:hover{border-color:var(--accent)}
+.tool:active{transform:scale(.985)}
+.tool .ic{grid-row:span 2;width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.tool .ic svg{width:24px;height:24px}
+.tool b{font-size:16px;line-height:1.2;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tool small{font-size:13px;color:var(--muted);line-height:1.3}
+.tag{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:6px;padding:1px 6px;background:var(--panel2);color:var(--muted)}
+
+/* ---------- Fil ---------- */
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{border:1.5px solid var(--line);background:var(--panel);border-radius:99px;padding:6px 13px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.day{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 2px 2px}
+.feed{display:grid;gap:8px}
+.evt{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 12px 12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;position:relative;overflow:hidden;cursor:pointer;text-align:left;width:100%}
+.evt::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--muted)}
+.evt.ok::before{background:var(--ok)}.evt.bad::before{background:var(--bad)}.evt.info::before{background:var(--info)}.evt.neutral::before{background:var(--accent)}
+.evt .k{font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.evt.ok .k{color:var(--ok)}.evt.bad .k{color:var(--bad)}.evt.info .k{color:var(--info)}.evt.neutral .k{color:var(--accent)}
+.evt .c{font-weight:700;font-size:16px;line-height:1.25}
+.evt .m{font-size:13.5px;color:var(--muted);grid-column:1/-1}
+.evt .t{font-size:12.5px;color:var(--muted);white-space:nowrap;text-align:right}
+.evt .amt{font-family:var(--f-disp);font-size:20px;font-weight:700;text-align:right;white-space:nowrap}
+.evt .msg{grid-column:1/-1;font-size:15px;white-space:pre-wrap;margin-top:2px}
+.evt .more{grid-column:1/-1;display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.empty{text-align:center;color:var(--muted);padding:28px 12px}
+
+/* ---------- Formulaires ---------- */
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:8px}
+.type{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);background:var(--panel);border-radius:12px;padding:14px 12px;font-weight:700;cursor:pointer;text-align:left;min-height:58px}
+.type i{width:12px;height:12px;border-radius:50%;flex:none;background:var(--muted)}
+.type.ok i,.qa.ok i{background:var(--ok)}.type.bad i,.qa.bad i{background:var(--bad)}.type.info i,.qa.info i{background:var(--info)}.type.neutral i,.qa.neutral i{background:var(--accent)}
+.form{display:grid;gap:14px}
+.f{display:grid;gap:6px}
+.f label{font-weight:700;font-size:14.5px}
+.f .hint{font-size:13px;color:var(--muted)}
+.f input,.f select,.f textarea{width:100%;min-width:0;border:1.5px solid var(--line);background:var(--panel);border-radius:12px;padding:11px 12px;font-size:16px;min-height:48px}
+.f textarea{min-height:96px;resize:vertical}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--accent);outline:none}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:420px){.grid2{grid-template-columns:1fr}}
+.err{color:var(--bad);font-weight:600;font-size:14px}
+.formhead{display:flex;align-items:center;gap:10px}
+.formhead .pill{font-size:13px;font-weight:700;border-radius:99px;padding:3px 10px;background:var(--panel2)}
+
+/* ---------- Équipe ---------- */
+.people{display:grid;gap:8px}
+.person{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:4px 12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.person .av{width:40px;height:40px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;font-weight:700;font-size:14px;grid-row:span 2}
+.person b{line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person small{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person select{grid-row:span 2;border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:6px 8px;font-size:14px;max-width:150px}
+.person.pending{border-color:var(--warn);background:var(--warn-soft)}
+.bell{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-left:6px;vertical-align:1px}
+
+/* ---------- Divers ---------- */
+.banner{background:var(--warn-soft);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;font-size:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner b{font-weight:700}
+.steps{margin:0;padding-left:20px;display:grid;gap:6px}
+.loading{min-height:50vh;display:grid;place-content:center;justify-items:center;gap:10px;color:var(--muted)}
+.spin{width:38px;height:38px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 18px + var(--sab));z-index:40;background:var(--fg);color:var(--bg);padding:11px 16px;border-radius:12px;font-weight:600;max-width:calc(100vw - 32px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+@media (min-width:900px){.toast{bottom:24px}}
+.fade{animation:fade .22s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ================= Version claire et pro ================= */
+.top{border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(19,36,27,.02);backdrop-filter:saturate(1.4) blur(10px);background:rgba(255,255,255,.92)}
+.title{font-size:21px;color:var(--fg)}
+.me{border:1.5px solid var(--line);background:var(--accent-soft);color:var(--accent-strong)}
+.nav{background:rgba(255,255,255,.96);border-top:1px solid var(--line);box-shadow:0 -4px 18px rgba(19,36,27,.05)}
+.nav a[aria-current="page"] svg{background:var(--accent-soft);border-radius:10px;padding:2px 10px;width:44px;box-sizing:content-box;margin:-2px 0}
+.nav a.plus[aria-current="page"] svg{background:none;padding:0;width:26px;margin:0}
+@media (min-width:900px){
+  .nav{box-shadow:none;background:var(--panel)}
+  .nav a[aria-current="page"] svg{background:none;padding:0;width:24px;margin:0}
+  .nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent-strong)}
+  .nav a.plus{background:var(--accent);color:#fff}
+}
+.hero{position:relative;overflow:hidden;border-radius:20px;padding:20px;display:grid;gap:16px;
+  background:linear-gradient(140deg,#e4f3d8 0%,#f3faee 45%,#ffffff 100%);border:1px solid #d7ebc8;box-shadow:var(--shadow)}
+.hero::after{content:"";position:absolute;right:-30px;top:-34px;width:150px;height:150px;opacity:.18;pointer-events:none;
+  background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M4 20L20 6l16 14' fill='none' stroke='%234a9a22' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='10' y='22' width='20' height='13' rx='2' fill='none' stroke='%234a9a22' stroke-width='3.5'/%3E%3C/svg%3E")}
+.hero .hello h2{font-size:32px;color:var(--fg)}
+.hero .hello p{color:var(--muted);font-weight:500}
+.hero .stats .stat{border:1px solid rgba(74,154,34,.18);box-shadow:none;background:rgba(255,255,255,.85)}
+.stat b{color:var(--fg)}
+.stat:nth-child(2) b{color:var(--accent-strong)}
+.card{border-radius:16px}
+.sec h2{color:#3c4c44;font-size:13.5px;letter-spacing:.1em}
+.qa{background:var(--panel);box-shadow:var(--shadow);border-color:var(--line);transition:border-color .15s,transform .15s}
+.qa:hover{border-color:var(--accent)}
+.qa:active{transform:scale(.985)}
+.tool{border-radius:16px;border-color:var(--line)}
+.tool:hover{box-shadow:var(--shadow-lg)}
+.tool.dir .ic{background:var(--blue-soft);color:var(--brand-blue)}
+.tool.dir:hover{border-color:var(--brand-blue)}
+.tag{background:var(--blue-soft);color:var(--brand-blue)}
+.evt{border-radius:14px;box-shadow:var(--shadow);border-color:var(--line)}
+.btn.primary{box-shadow:0 4px 14px rgba(74,154,34,.28)}
+.btn.primary:hover{background:var(--accent-strong)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.f input,.f select,.f textarea{background:#fbfcfb}
+.banner{background:#fff8e8;border-color:#f0d9a8}
+.hero::after{right:-14px;top:-18px;width:104px;height:104px;opacity:.12}
+.hero .hello h2{font-size:30px}
+.hero .stats{grid-template-columns:minmax(0,1fr) minmax(0,1.45fr) minmax(0,1fr)}
+.hero .stat{padding:10px}
+.hero .stat b{font-size:24px;overflow:visible;text-overflow:clip}
+.hero .stat span{font-size:12px;line-height:1.25;display:block}
+
+/* ---------- Connexion et validation ---------- */
+.login{max-width:440px;margin:4vh auto 0;display:grid;gap:18px;justify-items:stretch}
+.login .hello{text-align:center}
+.login .hello h2{font-size:30px}
+.login > .small{text-align:center}
+.login-brand{width:76px;height:76px;border-radius:22px;margin:0 auto;display:grid;place-items:center;color:var(--accent);
+  background:linear-gradient(140deg,#e4f3d8,#ffffff);border:1px solid #d7ebc8;box-shadow:var(--shadow)}
+.login-brand svg{width:42px;height:42px}
+.login-brand.pulse{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 12px rgba(74,154,34,.10),var(--shadow)}}
+.req{display:grid;gap:10px}
+.req-h{display:flex;gap:12px;align-items:center}
+.req-h .av{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);color:var(--accent-strong);display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+.req-h b{display:block;line-height:1.2}
+.req-h small{color:var(--muted);font-size:13px}
+.person > .btn{grid-row:span 2}
+
+/* ---------- Chat de l'équipe ---------- */
+.nav a.desk{display:none}
+@media (min-width:900px){.nav a.desk{display:flex}}
+.main.is-chat{padding-bottom:0}
+.chat{display:grid;gap:6px;padding-bottom:14px}
+.chat-day{text-align:center;margin:14px 0 6px}
+.bub-row{display:flex;gap:8px;align-items:flex-end;max-width:100%}
+.bub-row.mine{justify-content:flex-end}
+.bub-row .av{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent-strong);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.bub-row .av.ghost{background:none}
+.bub-col{display:grid;gap:3px;max-width:min(78%,560px);min-width:0}
+.bub-row.mine .bub-col{justify-items:end}
+.bub-name{font-size:12.5px;font-weight:700;color:var(--muted);margin-left:4px}
+.bub{background:var(--panel);border:1px solid var(--line);border-radius:18px 18px 18px 6px;padding:9px 12px 7px;box-shadow:var(--shadow);white-space:pre-wrap;overflow-wrap:anywhere;cursor:pointer;line-height:1.4}
+.bub-row.mine .bub{background:var(--accent);border-color:var(--accent);color:#fff;border-radius:18px 18px 6px 18px}
+.bub-t{display:inline-block;font-size:11px;opacity:.6;margin-left:8px;vertical-align:-1px;white-space:nowrap}
+.rxs{display:flex;gap:4px;flex-wrap:wrap}
+.rx{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:2px 8px;font-size:13px;cursor:pointer;line-height:1.5}
+.rx b{font-weight:700;font-size:12px;color:var(--muted)}
+.rx.on{border-color:var(--accent);background:var(--accent-soft)}
+.rx.add{color:var(--muted);font-weight:700;min-width:30px}
+.msg-tools{display:flex;gap:4px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;box-shadow:var(--shadow-lg)}
+.rx-pick{border:0;background:none;font-size:22px;padding:4px 6px;cursor:pointer;border-radius:10px}
+.rx-pick:hover{background:var(--panel2)}
+.rx-del{border:0;background:none;color:var(--bad);font-weight:600;font-size:13px;padding:4px 8px;cursor:pointer}
+.defi{--gold:#b7791f;--gold-soft:#fdf4e1;background:linear-gradient(150deg,#fff8e8,#ffffff 70%);border:1.5px solid #f0d9a8;border-radius:18px;padding:14px;display:grid;gap:10px;box-shadow:var(--shadow);margin:6px 0}
+.defi.done{background:var(--panel);border-color:var(--line)}
+.defi-top{display:flex;gap:12px;align-items:center}
+.defi-ic{width:42px;height:42px;border-radius:12px;background:var(--gold-soft);color:var(--gold);display:grid;place-items:center;flex:none}
+.defi-ic svg{width:24px;height:24px}
+.defi-k{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.defi h3{font-size:21px;line-height:1.15}
+.defi-txt{margin:0;white-space:pre-wrap}
+.defi-meta{margin:0;font-size:13px;color:var(--muted)}
+.defi-win{margin:0;display:flex;gap:6px;align-items:center;font-weight:600;color:var(--gold)}
+.defi-win svg{width:20px;height:20px}
+.avs{display:flex;flex-wrap:wrap}
+.avs .av{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent-strong);border:2px solid #fff;display:grid;place-items:center;font-size:11.5px;font-weight:700;margin-right:-6px}
+.win-sel{border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:6px 8px;font-size:14px;max-width:100%}
+.composer-wrap{position:sticky;bottom:calc(var(--nav-h) + var(--sab));z-index:15;background:var(--bg);padding:8px 0 10px;margin-bottom:calc(var(--nav-h) + var(--sab))}
+.composer{display:flex;gap:8px;align-items:flex-end;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:20px;padding:6px;box-shadow:var(--shadow-lg)}
+.composer textarea{flex:1;min-width:0;border:0;background:none;resize:none;font-size:16px;padding:9px 6px;max-height:140px;outline:none;line-height:1.35}
+.composer .send{width:42px;height:42px;border-radius:14px;border:0;background:var(--accent);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none}
+.composer .send svg{width:20px;height:20px}
+.defi-btn{color:#b7791f;border-color:#f0d9a8;background:#fff8e8;min-height:42px;border-radius:14px;padding:6px 10px}
+.defi-btn svg{width:18px;height:18px}
+@media (max-width:380px){.defi-btn span{display:none}}
+@media (min-width:900px){.composer-wrap{bottom:0;margin-bottom:0;padding-bottom:16px}}
+dialog{border:1px solid var(--line);border-radius:18px;padding:0;width:min(520px,calc(100vw - 32px));box-shadow:var(--shadow-lg);background:var(--panel);color:var(--fg)}
+dialog::backdrop{background:rgba(19,36,27,.35)}
+.dlg{padding:18px}
+.switch{display:flex;gap:10px;align-items:center;margin-top:8px;font-size:15px;cursor:pointer}
+.switch input{width:20px;height:20px;accent-color:var(--accent)}
+
+.bub-row{align-items:flex-start}
+.bub-row .av{margin-top:24px}
+
+
+/* Aperçu dans Claude : bande d'encoche gérée par la page */
+.top{top:env(safe-area-inset-top,0px);padding-top:8px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--top)}
+
+</style>
+<div class="app" id="app">
+  <header class="top">
+    <a class="brand" href="#accueil" aria-label="Accueil DCRF">
+      <svg viewBox="0 0 130 40" aria-hidden="true"><path d="M5 22L20 9l15 13" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><rect x="11" y="24" width="18" height="10" rx="1.5" fill="none" stroke="var(--accent)" stroke-width="4"/><text x="42" y="31" font-family="'Barlow Condensed','Arial Narrow',sans-serif" font-weight="700" font-size="28" fill="currentColor">DCRF</text><rect x="111" y="11" width="5" height="6" fill="#1f4fa3"/><rect x="116" y="11" width="5" height="6" fill="#fff"/><rect x="121" y="11" width="5" height="6" fill="#d7262f"/></svg>
+    </a>
+    <h1 class="title" id="title">Accueil</h1>
+    <button class="me" id="meBtn" type="button" aria-label="Mon compte"><span id="meInit">··</span></button>
+  </header>
+
+  <nav class="nav" id="nav" aria-label="Navigation principale"></nav>
+
+  <main class="main" id="main" tabindex="-1">
+    <div class="loading" id="boot"><div class="spin"></div><p>Connexion…</p></div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module">
+// Types d'événements DCRF : qui peut les déclarer, qui est prévenu.
+// Fichier partagé entre l'appli (navigateur) et le serveur (Pages Functions).
+
+const ROLES = {
+  admin: "Direction",
+  vendeur: "Vendeur",
+  apporteur: "Apporteur",
+  pose: "Pose",
+  attente: "En attente",
+  bloque: "Accès retiré",
+};
+
+// champs possibles : client, ville, vendeur, montant, organisme, date, commentaire
+// notif.roles : rôles prévenus ; notif.vendeur : le vendeur concerné est prévenu
+const TYPES = {
+  vente: {
+    label: "Vente signée", short: "Vente", groupe: "ventes", ton: "ok",
+    champs: ["client", "ville", "vendeur", "montant", "commentaire"],
+    peut: ["admin", "vendeur", "apporteur"],
+    notif: { roles: ["admin", "pose"], vendeur: true },
+  },
+  annulation: {
+    label: "Annulation", short: "Annulation", groupe: "ventes", ton: "bad",
+    champs: ["client", "ville", "vendeur", "montant", "commentaire"],
+    peut: ["admin", "vendeur", "apporteur"],
+    notif: { roles: ["admin", "pose"], vendeur: true },
+  },
+  financement_ok: {
+    label: "Financement accepté", short: "Financement OK", groupe: "financements", ton: "ok",
+    champs: ["client", "vendeur", "organisme", "montant", "commentaire"],
+    peut: ["admin"],
+    notif: { roles: ["admin", "pose"], vendeur: true },
+  },
+  financement_refus: {
+    label: "Financement refusé", short: "Financement refusé", groupe: "financements", ton: "bad",
+    champs: ["client", "vendeur", "organisme", "montant", "commentaire"],
+    peut: ["admin"],
+    notif: { roles: ["admin"], vendeur: true },
+  },
+  rdv: {
+    label: "Nouveau RDV", short: "RDV", groupe: "ventes", ton: "info",
+    champs: ["client", "ville", "vendeur", "date", "commentaire"],
+    peut: ["admin"],
+    notif: { roles: [], vendeur: true },
+  },
+  pose_planifiee: {
+    label: "Pose planifiée", short: "Pose planifiée", groupe: "poses", ton: "info",
+    champs: ["client", "ville", "vendeur", "date", "commentaire"],
+    peut: ["admin", "pose"],
+    notif: { roles: ["admin"], vendeur: true },
+  },
+  pose_terminee: {
+    label: "Pose terminée", short: "Pose terminée", groupe: "poses", ton: "ok",
+    champs: ["client", "ville", "vendeur", "commentaire"],
+    peut: ["admin", "pose"],
+    notif: { roles: ["admin"], vendeur: true },
+  },
+  sav: {
+    label: "Problème chantier / SAV", short: "SAV", groupe: "poses", ton: "bad",
+    champs: ["client", "ville", "vendeur", "commentaire"],
+    peut: ["admin", "pose", "vendeur"],
+    notif: { roles: ["admin", "pose"], vendeur: true },
+  },
+  encaissement: {
+    label: "Encaissement", short: "Encaissé", groupe: "financements", ton: "ok",
+    champs: ["client", "vendeur", "montant", "commentaire"],
+    peut: ["admin"],
+    notif: { roles: ["admin"], vendeur: false },
+  },
+  info: {
+    label: "Message à l'équipe", short: "Message", groupe: "messages", ton: "neutral",
+    champs: ["commentaire"],
+    peut: ["admin"],
+    notif: { roles: ["admin", "vendeur", "apporteur", "pose"], vendeur: false },
+  },
+};
+
+// Types visibles dans le fil pour le rôle Pose (en plus de ce qu'il a déclaré)
+const VISIBLES_POSE = ["vente", "annulation", "financement_ok", "pose_planifiee", "pose_terminee", "sav", "info"];
+
+const ORGANISMES = ["Sofinco", "Cetelem", "Franfinance", "Domofinance", "Autre"];
+
+const eur = (n) =>
+  n == null || n === "" || isNaN(n) ? "" :
+  new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(Number(n))) + " €";
+
+// "2026-10-24T09:30" (heure locale saisie) -> "sam. 24/10 à 9h30", sans dépendre du fuseau du serveur
+function fmtDateEvt(s) {
+  const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);
+  if (!m) return "";
+  const j = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."][new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay()];
+  return `${j} ${m[3]}/${m[2]}` + (m[4] ? ` à ${+m[4]}h${m[5]}` : "");
+}
+
+// Texte de notification
+function notifText(evt) {
+  const t = TYPES[evt.type] || { label: evt.type };
+  const title = evt.type === "info" ? `Message de ${evt.auteur_nom || "la direction"}` : t.label + (evt.client ? ` · ${evt.client}` : "");
+  const bits = [];
+  if (evt.type === "info") bits.push(evt.commentaire || "");
+  else {
+    if (evt.vendeur_nom) bits.push(evt.vendeur_nom);
+    if (evt.organisme) bits.push(evt.organisme);
+    if (evt.montant) bits.push(eur(evt.montant));
+    if (evt.date_evt) bits.push(fmtDateEvt(evt.date_evt));
+    if (evt.ville) bits.push(evt.ville);
+    if (evt.commentaire) bits.push(evt.commentaire);
+  }
+  return { title, body: bits.filter(Boolean).join(" · ").slice(0, 240) };
+}
+
+// Appli DCRF — accueil, outils, fil des événements, déclaration, équipe, notifications
+
+/* ================= Outils regroupés ================= */
+const T = ["admin", "vendeur", "apporteur"];
+const TOOLS = [
+  { nom: "Carte clients", desc: "Tes fichiers clients sur la carte", url: "carte.html", roles: T, sec: "terrain", ic: "map" },
+  { nom: "Ciblage DPE", desc: "Repérer les passoires pour le porte-à-porte", url: "ciblage-dpe.html", roles: T, sec: "terrain", ic: "target" },
+  { nom: "Étude Solaire & PAC", desc: "Panneaux, PAC, batterie : visuel, synthèse et transfert de charge", url: "simulateur-solaire.html", roles: T, sec: "terrain", ic: "sun" },
+  { nom: "Simulateur DPE", desc: "Étiquette, travaux et aides chez le client", url: "simulateur-dpe.html", roles: T, sec: "terrain", ic: "gauge" },
+  { nom: "Bilan habitat", desc: "Bilan de conformité à remplir sur place", url: "bilan-habitat.html", roles: T, sec: "terrain", ic: "clip" },
+  { nom: "Fiches chantier", desc: "18 fiches techniques en PDF, photos comprises", url: "fiches-chantier.html", roles: [...T, "pose"], sec: "terrain", ic: "file" },
+  { nom: "Formation vendeur", desc: "Le guide du vendeur conseil", url: "https://claude.ai/code/artifact/9307fe44-9b3b-4421-8191-73aacd7e8caa", claude: true, roles: T, sec: "terrain", ic: "book" },
+  { nom: "Pilotage DCRF", desc: "Ventes, poses, encaissements, alertes", url: "https://claude.ai/code/artifact/a9d5b27c-6d8f-413c-9b20-52a4b6e93283", claude: true, roles: ["admin"], sec: "direction", ic: "chart" },
+  { nom: "Tableur de reporting", desc: "Le Google Sheets de l'équipe", url: "https://docs.google.com/spreadsheets/d/1uWoYph7SJgwmlbhUv66NutISEa5FonhZoHqLxH1nhm0/edit", ext: true, roles: ["admin"], sec: "direction", ic: "table" },
+  { nom: "RDV leads Palorys", desc: "Qualifiés, non qualifiés, à réclamer", url: "https://claude.ai/code/artifact/241992c2-69aa-4e6f-ba27-635eb94ab2d5", claude: true, roles: ["admin"], sec: "direction", ic: "phone" },
+  { nom: "Facturation Palorys", desc: "Contrôle de la facture du prestataire", url: "https://claude.ai/code/artifact/27aedc4d-1ef5-4073-98ab-d6f2cbd1feaf", claude: true, roles: ["admin"], sec: "direction", ic: "euro" },
+  { nom: "Brief commercial", desc: "Préparer le briefing du lundi", url: "https://claude.ai/code/artifact/65680097-c154-4d1d-a7e8-a3e511de52d2", claude: true, roles: ["admin"], sec: "direction", ic: "mega" },
+  { nom: "Écosystème DCRF", desc: "La vue d'ensemble des outils", url: "https://claude.ai/code/artifact/3fa1be67-9c60-4c83-9fe0-d74e4e9f290c", claude: true, roles: ["admin"], sec: "direction", ic: "grid" },
+];
+const SECTIONS = { terrain: "Outils terrain", direction: "Direction" };
+
+const QUICK = {
+  admin: ["vente", "annulation", "financement_ok", "info"],
+  vendeur: ["vente", "annulation"],
+  apporteur: ["vente", "annulation"],
+  pose: ["pose_planifiee", "pose_terminee", "sav"],
+};
+
+/* ================= Icônes ================= */
+const P = {
+  home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  feed: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  team: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14.5c2.4 0 4 1.5 4.5 4"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+  map: '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  gauge: '<path d="M4 18a8 8 0 1116 0"/><path d="M12 18l4-6"/>',
+  clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/>',
+  file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
+  book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5M8 7h7"/>',
+  chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  table: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16"/>',
+  phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/>',
+  euro: '<path d="M18 6.5A7 7 0 1018 17.5"/><path d="M4 10h9M4 14h9"/>',
+  mega: '<path d="M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1zM15 9a3 3 0 010 6M18 6a7 7 0 010 12"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  bell: '<path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/>',
+  ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>',
+  chat: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
+  trophy: '<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8 20h8M10 17h4"/>',
+  send: '<path d="M4 12l16-8-6 16-2-6z"/><path d="M12 14l8-10"/>',
+};
+const ico = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[k] || ""}</svg>`;
+
+/* ================= Utilitaires ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const initials = (n, e) => (n || e || "?").split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((x) => x[0].toUpperCase()).join("");
+const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+// Les dates du serveur sont en UTC ("2026-10-23 20:14:05")
+const parseUTC = (s) => new Date(String(s).replace(" ", "T") + (String(s).endsWith("Z") ? "" : "Z"));
+function toast(m) { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => (t.hidden = true), 3200); }
+function dayLabel(d) {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const x = new Date(d); x.setHours(0, 0, 0, 0);
+  const diff = Math.round((t - x) / 864e5);
+  if (diff === 0) return "Aujourd'hui";
+  if (diff === 1) return "Hier";
+  return d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+}
+const hhmm = (d) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+function b64uToBytes(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; const b = atob(s); return Uint8Array.from(b, (c) => c.charCodeAt(0)); }
+function deviceName() {
+  const u = navigator.userAgent;
+  if (/iphone/i.test(u)) return "iPhone"; if (/ipad/i.test(u)) return "iPad"; if (/android/i.test(u)) return "Android";
+  if (/mac/i.test(u)) return "Mac"; if (/windows/i.test(u)) return "PC Windows"; return "Navigateur";
+}
+
+/* ================= Données : serveur ou démo ================= */
+let DEMO = new URLSearchParams(location.search).has("demo") || window.DCRF_DEMO === true;
+let ME = null;
+let FEED = [];
+let FEED_MORE = false;
+let USERS = null;
+
+async function api(path, opts = {}) {
+  if (DEMO) return demoApi(path, opts);
+  const init = { method: opts.method || "GET", headers: {}, credentials: "same-origin" };
+  if (opts.body !== undefined) { init.body = JSON.stringify(opts.body); init.headers["Content-Type"] = "application/json"; }
+  let r;
+  // Une session Cloudflare Access expirée redirige vers la page de connexion : fetch échoue alors en erreur réseau
+  try { r = await fetch(path, init); }
+  catch { throw Object.assign(new Error(navigator.onLine === false ? "Pas de connexion internet." : "Le serveur ne répond pas. Réessaie dans un instant."), { network: true }); }
+  const ct = r.headers.get("Content-Type") || "";
+  if (!ct.includes("application/json")) throw Object.assign(new Error("Le serveur ne répond pas comme prévu."), { offline: true });
+  const data = await r.json();
+  if (r.status === 401 && path !== "/api/connexion" && ME) { ME = null; viewLogin(); }
+  if (!r.ok) throw Object.assign(new Error(data.erreur || "Erreur " + r.status), { status: r.status });
+  return data;
+}
+
+/* ---------- Démo (aperçu sans serveur) ---------- */
+const DEMO_TEAM = [
+  { email: "t.hoarau.dcrf@gmail.com", nom: "Tristan", role: "admin" },
+  { email: "elias@dcrf.fr", nom: "Elias", role: "admin" },
+  { email: "florence@dcrf.fr", nom: "Florence", role: "admin" },
+  { email: "nourdine@dcrf.fr", nom: "Nourdine", role: "vendeur" },
+  { email: "yassine@dcrf.fr", nom: "Yassine", role: "vendeur" },
+  { email: "nora@dcrf.fr", nom: "Nora", role: "apporteur" },
+  { email: "baptiste@dcrf.fr", nom: "Baptiste", role: "apporteur" },
+  { email: "kamel@dcrf.fr", nom: "Kamel", role: "apporteur" },
+  { email: "steven@dcrf.fr", nom: "Steven", role: "pose" },
+];
+const ago = (min) => new Date(Date.now() - min * 60e3).toISOString().replace("T", " ").slice(0, 19);
+let DEMO_FEED = [
+  { id: 7, type: "financement_ok", client: "M. Lafaye", vendeur_email: "t.hoarau.dcrf@gmail.com", vendeur_nom: "Tristan", organisme: "Sofinco", montant: 13298, auteur_email: "florence@dcrf.fr", auteur_nom: "Florence", cree_le: ago(18) },
+  { id: 6, type: "vente", client: "Mme Bernard", ville: "Saumur", vendeur_email: "nourdine@dcrf.fr", vendeur_nom: "Nourdine", montant: 9850, commentaire: "Hydrofuge + gouttières, financement Sofinco en cours", auteur_email: "florence@dcrf.fr", auteur_nom: "Florence", cree_le: ago(95) },
+  { id: 5, type: "pose_planifiee", client: "M. et Mme Roy", ville: "Chinon", vendeur_email: "yassine@dcrf.fr", vendeur_nom: "Yassine", date_evt: "2026-10-27T08:00", auteur_email: "steven@dcrf.fr", auteur_nom: "Steven", cree_le: ago(180) },
+  { id: 4, type: "annulation", client: "M. Petit", ville: "Angers", vendeur_email: "yassine@dcrf.fr", vendeur_nom: "Yassine", montant: 7400, commentaire: "Délai de rétractation, conjoint opposé", auteur_email: "florence@dcrf.fr", auteur_nom: "Florence", cree_le: ago(60 * 26) },
+  { id: 3, type: "info", commentaire: "Briefing lundi 8h30 au bureau. Ramenez vos fiches de la semaine.", auteur_email: "t.hoarau.dcrf@gmail.com", auteur_nom: "Tristan", cree_le: ago(60 * 27) },
+  { id: 2, type: "vente", client: "Mme Garnier", ville: "Loudun", vendeur_email: "nora@dcrf.fr", vendeur_nom: "Nora", montant: 15600, auteur_email: "florence@dcrf.fr", auteur_nom: "Florence", cree_le: ago(60 * 50) },
+  { id: 1, type: "pose_terminee", client: "M. Lemoine", ville: "Bourgueil", vendeur_email: "nourdine@dcrf.fr", vendeur_nom: "Nourdine", commentaire: "Photos envoyées", auteur_email: "steven@dcrf.fr", auteur_nom: "Steven", cree_le: ago(60 * 52) },
+];
+let DEMO_CHAT = [
+  { id: 1, email: "elias@dcrf.fr", nom: "Elias", type: "msg", texte: "Bravo à tous pour la semaine, on lâche rien 💪", cree_le: ago(60 * 26), reactions: [{ email: "nourdine@dcrf.fr", emoji: "🔥" }, { email: "yassine@dcrf.fr", emoji: "💪" }], participants: [] },
+  { id: 2, email: "t.hoarau.dcrf@gmail.com", nom: "Tristan", type: "defi", defi_titre: "Le premier à 3 ventes cette semaine", texte: "Le gagnant choisit le resto vendredi midi. Ventes signées et non annulées.", defi_fin: "2026-10-30", cree_le: ago(60 * 25), reactions: [{ email: "elias@dcrf.fr", emoji: "🏆" }], participants: [{ email: "nourdine@dcrf.fr", nom: "Nourdine" }, { email: "yassine@dcrf.fr", nom: "Yassine" }, { email: "nora@dcrf.fr", nom: "Nora" }] },
+  { id: 3, email: "nourdine@dcrf.fr", nom: "Nourdine", type: "msg", texte: "Yassine prépare ta carte bleue pour le resto 😂", cree_le: ago(60 * 24), reactions: [{ email: "t.hoarau.dcrf@gmail.com", emoji: "😂" }, { email: "nora@dcrf.fr", emoji: "😂" }], participants: [] },
+  { id: 4, email: "yassine@dcrf.fr", nom: "Yassine", type: "msg", texte: "On en reparle vendredi 😏 Je viens de signer Mme Bernard", cree_le: ago(90), reactions: [{ email: "elias@dcrf.fr", emoji: "👍" }], participants: [] },
+  { id: 5, email: "steven@dcrf.fr", nom: "Steven", type: "msg", texte: "Pose Roy mardi 8h, je prends l'échafaudage ce soir", cree_le: ago(40), reactions: [], participants: [] },
+];
+let demoRole = "admin";
+function demoMe() {
+  const m = { admin: DEMO_TEAM[0], vendeur: DEMO_TEAM[3], apporteur: DEMO_TEAM[5], pose: DEMO_TEAM[8] }[demoRole];
+  return { ...m, vapidPublicKey: null, equipe: DEMO_TEAM, appareils: 0 };
+}
+async function demoApi(path, opts) {
+  await new Promise((r) => setTimeout(r, 150));
+  const me = demoMe();
+  if (path === "/api/moi") return me;
+  if (path.startsWith("/api/evenements") && (opts.method || "GET") === "GET") {
+    const vis = DEMO_FEED.filter((e) => me.role === "admin" || (me.role === "pose" ? ["vente", "annulation", "financement_ok", "pose_planifiee", "pose_terminee", "sav", "info"].includes(e.type) : e.vendeur_email === me.email || e.type === "info"));
+    return { evenements: vis, suite: false };
+  }
+  if (path === "/api/evenements" && opts.method === "POST") {
+    const b = opts.body, v = DEMO_TEAM.find((x) => x.email === (me.role === "admin" || me.role === "pose" ? b.vendeur_email : me.email));
+    const e = { ...b, id: Date.now(), vendeur_nom: v ? v.nom : null, vendeur_email: v ? v.email : null, auteur_email: me.email, auteur_nom: me.nom, cree_le: ago(0) };
+    DEMO_FEED.unshift(e);
+    return { ok: true, evenement: e, prevenus: 3 };
+  }
+  if (path.startsWith("/api/evenements") && opts.method === "DELETE") { const id = +new URL(path, location.href).searchParams.get("id"); DEMO_FEED = DEMO_FEED.filter((e) => e.id !== id); return { ok: true }; }
+  if (path === "/api/utilisateurs" && (opts.method || "GET") === "GET") return { utilisateurs: [{ email: "nouveau.vendeur@gmail.com", nom: "Lucas", role: "attente", appareils: 0 }, ...DEMO_TEAM.map((u, i) => ({ ...u, appareils: i % 3 ? 1 : 0, vu_le: ago(i * 90) }))] };
+  if (path === "/api/utilisateurs") return { ok: true };
+  if (path === "/api/sessions" && (opts.method || "GET") === "GET") return { sessions: [
+    { id: 91, email: "lucas.martin@gmail.com", nom: "Lucas Martin", role: "attente", statut: "attente", appareil: "iPhone", cree_le: ago(3) },
+    { id: 90, email: "yassine@dcrf.fr", nom: "Yassine", role: "vendeur", statut: "attente", appareil: "PC Windows", cree_le: ago(12) },
+    ...DEMO_TEAM.slice(0, 6).map((u, i) => ({ id: 80 - i, email: u.email, nom: u.nom, role: u.role, statut: "ok", appareil: i % 2 ? "PC Windows" : "iPhone", cree_le: ago(60 * 24 * (i + 1)), vu_le: ago(i * 70) })) ] };
+  if (path === "/api/sessions") return { ok: true };
+  if (path.startsWith("/api/chat") && (opts.method || "GET") === "GET") {
+    const ap = +new URL(path, location.href).searchParams.get("apres") || 0;
+    return { messages: DEMO_CHAT.filter((m) => m.id > ap), defis: DEMO_CHAT.filter((m) => m.type === "defi"), suite: false };
+  }
+  if (path === "/api/chat") {
+    const b = opts.body;
+    if (b.action) {
+      const m = DEMO_CHAT.find((x) => x.id === +b.id);
+      if (b.action === "reaction") { const i = m.reactions.findIndex((r) => r.email === me.email && r.emoji === b.emoji); if (i >= 0) m.reactions.splice(i, 1); else m.reactions.push({ email: me.email, emoji: b.emoji }); }
+      if (b.action === "participer") { const i = m.participants.findIndex((r) => r.email === me.email); if (i >= 0) m.participants.splice(i, 1); else m.participants.push({ email: me.email, nom: me.nom }); }
+      if (b.action === "gagnant") { const w = DEMO_TEAM.find((u) => u.email === b.email); m.gagnant_email = w.email; m.gagnant_nom = w.nom; }
+      if (b.action === "supprimer") DEMO_CHAT = DEMO_CHAT.filter((x) => x !== m);
+      return { ok: true };
+    }
+    const id = Math.max(...DEMO_CHAT.map((m) => m.id)) + 1;
+    DEMO_CHAT.push(b.defi ? { id, email: me.email, nom: me.nom, type: "defi", texte: b.defi.texte, defi_titre: b.defi.titre, defi_fin: b.defi.fin, cree_le: ago(0), reactions: [], participants: [] }
+      : { id, email: me.email, nom: me.nom, type: "msg", texte: b.texte, cree_le: ago(0), reactions: [], participants: [] });
+    return { ok: true, id };
+  }
+  throw new Error("Pas disponible dans l'aperçu.");
+}
+
+/* ================= Navigation ================= */
+const can = (type) => ME && TYPES[type].peut.includes(ME.role);
+const canPost = () => ME && Object.keys(TYPES).some(can);
+
+function buildNav() {
+  const items = [
+    ["accueil", "Accueil", "home"],
+    ["fil", "Fil", "feed"],
+  ];
+  if (canPost()) items.push(["nouveau", "Déclarer", "plus", "plus"]);
+  items.push(["chat", "Chat", "chat"]);
+  if (ME.role === "admin") items.push(["equipe", "Équipe", "team"]);
+  items.push(["reglages", "Réglages", "gear", "desk"]);
+  const dots = { equipe: "pendingDot", chat: "chatDot" };
+  $("#nav").innerHTML = items.map(([id, l, ic, cls]) =>
+    `<a href="#${id}" data-r="${id}" class="${cls || ""}">${cls === "plus" ? `<span class="ic">${ico(ic)}</span>` : ico(ic)}<span>${l}</span>${dots[id] ? `<span class="dot" id="${dots[id]}" hidden></span>` : ""}</a>`
+  ).join("");
+  updateChatDot();
+}
+
+const ROUTES = { accueil: viewHome, fil: viewFeed, nouveau: viewNew, chat: viewChat, equipe: viewTeam, reglages: viewSettings };
+const TITLES = { accueil: "Accueil", fil: "Fil DCRF", nouveau: "Déclarer", chat: "Chat de l'équipe", equipe: "Équipe", reglages: "Réglages" };
+
+function route() {
+  if (!ME) return;
+  if (["attente", "bloque"].includes(ME.role)) return viewWaiting();
+  let [r, arg] = location.hash.replace(/^#/, "").split("/");
+  if (!ROUTES[r] || (r === "equipe" && ME.role !== "admin") || (r === "nouveau" && !canPost())) r = "accueil";
+  $("#title").textContent = TITLES[r];
+  document.querySelectorAll("#nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.r === r ? "page" : "false"));
+  updateChatDot();
+  const main = $("#main");
+  main.innerHTML = "";
+  main.className = "main fade" + (r === "chat" ? " is-chat" : "");
+  void main.offsetWidth;
+  ROUTES[r](main, arg);
+  if (r !== "chat") scrollTo(0, 0);
+}
+addEventListener("hashchange", route);
+
+/* ================= Vues ================= */
+function demoBanner() {
+  return DEMO ? `<div class="banner"><b>Aperçu</b><span>Rien n'est enregistré ni envoyé. Voir en tant que :</span>
+    <select id="demoRole" aria-label="Rôle de l'aperçu" class="chip">${["admin", "vendeur", "apporteur", "pose"].map((r) => `<option value="${r}" ${r === demoRole ? "selected" : ""}>${ROLES[r]}</option>`).join("")}</select></div>` : "";
+}
+function bindDemo(root) {
+  const s = $("#demoRole", root);
+  if (s) s.onchange = async () => { demoRole = s.value; await boot(); };
+}
+
+function setupCard() {
+  if (DEMO) return "";
+  if (!standalone()) {
+    return `<div class="card callout"><h3>Installe l'appli sur ton écran d'accueil</h3><p class="muted small">Elle s'ouvrira comme une vraie appli et pourra t'envoyer des notifications.</p><div class="row" style="margin-top:10px"><a class="btn sm" href="#reglages">Comment faire</a></div></div>`;
+  }
+  if (pushSupported() && Notification.permission !== "granted") {
+    return `<div class="card callout"><h3>Active les notifications</h3><p class="muted small">Ventes, annulations, financements, poses : tu es prévenu tout de suite.</p><div class="row" style="margin-top:10px"><button class="btn sm primary" type="button" id="enableHere">${ico("bell")}Activer</button></div></div>`;
+  }
+  return "";
+}
+
+async function viewHome(main) {
+  const first = (ME.nom || "").split(" ")[0];
+  const h = new Date().getHours();
+  const hello = h < 5 || h >= 18 ? "Bonsoir" : "Bonjour";
+  const tools = TOOLS.filter((t) => t.roles.includes(ME.role));
+  const secs = Object.keys(SECTIONS).filter((s) => tools.some((t) => t.sec === s));
+  const quick = (QUICK[ME.role] || []).filter(can);
+  main.innerHTML = `<div class="stack">
+    ${demoBanner()}
+    <section class="hero"><div class="hello"><h2>${hello}${first ? " " + esc(first) : ""}</h2><p>${esc(ROLES[ME.role])} · ${new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</p></div>
+    ${ME.role === "admin" ? '<div class="stats" id="stats"></div>' : ""}</section>
+    ${setupCard()}
+    ${quick.length ? `<div class="sec"><h2>Déclarer</h2></div><div class="quick">${quick.map((k) => `<button type="button" class="qa ${TYPES[k].ton}" data-new="${k}"><i></i>${esc(TYPES[k].label)}</button>`).join("")}</div>` : ""}
+    <div class="sec"><h2>Dernières nouvelles</h2><a href="#fil">Tout le fil</a></div>
+    <div class="feed" id="lastFeed"><div class="empty">Chargement…</div></div>
+    ${secs.map((s) => `<div class="sec"><h2>${SECTIONS[s]}</h2></div><div class="tools">${tools.filter((t) => t.sec === s).map(toolHTML).join("")}</div>`).join("")}
+    ${tools.some((t) => t.claude) ? '<p class="small muted">Les outils marqués « Claude » s\'ouvrent dans Claude : ils doivent être partagés depuis Claude pour être visibles par les autres.</p>' : ""}
+  </div>`;
+  bindDemo(main);
+  main.querySelectorAll("[data-new]").forEach((b) => (b.onclick = () => (location.hash = "nouveau/" + b.dataset.new)));
+  const en = $("#enableHere", main);
+  if (en) en.onclick = async () => { if (await enablePush()) route(); };
+  await loadFeed(true);
+  const last = $("#lastFeed", main);
+  if (last) { last.innerHTML = FEED.length ? FEED.slice(0, 4).map(evtHTML).join("") : '<div class="empty">Rien pour l\'instant.</div>'; bindFeed(last); }
+  const st = $("#stats", main);
+  if (st) st.innerHTML = weekStats();
+  if (ME.role === "admin") refreshPending();
+}
+
+function toolHTML(t) {
+  const target = t.ext || t.claude || DEMO ? ' target="_blank" rel="noopener"' : "";
+  return `<a class="tool${t.sec === "direction" ? " dir" : ""}" href="${esc(t.url)}"${target}><span class="ic">${ico(t.ic)}</span><b>${esc(t.nom)}${t.claude ? '<span class="tag">Claude</span>' : ""}</b><small>${esc(t.desc)}</small></a>`;
+}
+
+function weekStats() {
+  const now = new Date(); const mon = new Date(now); mon.setHours(0, 0, 0, 0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  const wk = FEED.filter((e) => parseUTC(e.cree_le) >= mon);
+  const v = wk.filter((e) => e.type === "vente"), a = wk.filter((e) => e.type === "annulation");
+  const ca = v.reduce((s, e) => s + (+e.montant || 0), 0) - a.reduce((s, e) => s + (+e.montant || 0), 0);
+  return `<div class="stat"><b>${v.length}</b><span>vente${v.length > 1 ? "s" : ""} cette sem.</span></div>
+    <div class="stat"><b>${eur(ca) || "0 €"}</b><span>CA net de la semaine</span></div>
+    <div class="stat"><b>${a.length}</b><span>annulation${a.length > 1 ? "s" : ""}</span></div>`;
+}
+
+/* ---------- Fil ---------- */
+let feedFilter = "tout";
+const GROUPS = { tout: "Tout", ventes: "Ventes", financements: "Financements", poses: "Poses", messages: "Messages" };
+
+async function loadFeed(force) {
+  if (!force && FEED.length) return;
+  try { const d = await api("/api/evenements"); FEED = d.evenements; FEED_MORE = d.suite; }
+  catch (e) { if (!FEED.length) toast(e.message); }
+}
+
+function evtHTML(e) {
+  const t = TYPES[e.type] || { label: e.type, ton: "neutral" };
+  const d = parseUTC(e.cree_le);
+  const mine = ME.role === "admin" || e.auteur_email === ME.email;
+  const meta = [e.vendeur_nom, e.ville, e.organisme, e.date_evt ? fmtDateEvt(e.date_evt) : ""].filter(Boolean).join(" · ");
+  const amt = e.montant ? eur(e.montant) : "";
+  return `<div class="evt ${t.ton}" data-id="${e.id}" role="button" tabindex="0" aria-expanded="false">
+    <span class="k">${esc(t.label)}</span><span class="t">${hhmm(d)}</span>
+    ${e.type === "info" ? `<span class="msg">${esc(e.commentaire)}</span>` : `<span class="c">${esc(e.client || "")}</span><span class="amt">${amt}</span>`}
+    ${meta ? `<span class="m">${esc(meta)}</span>` : ""}
+    ${e.type !== "info" && e.commentaire ? `<span class="m">${esc(e.commentaire)}</span>` : ""}
+    <div class="more" hidden><span class="small muted">Déclaré par ${esc(e.auteur_nom || e.auteur_email)} · ${dayLabel(d).toLowerCase()} à ${hhmm(d)}</span>${mine ? `<button type="button" class="btn sm danger" data-del="${e.id}">Supprimer</button>` : ""}</div>
+  </div>`;
+}
+
+function bindFeed(root) {
+  root.querySelectorAll(".evt").forEach((el) => {
+    const toggle = (ev) => {
+      if (ev.target.closest("[data-del]")) return;
+      const m = $(".more", el); m.hidden = !m.hidden; el.setAttribute("aria-expanded", String(!m.hidden));
+    };
+    el.onclick = toggle;
+    el.onkeydown = (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggle(ev); } };
+  });
+  root.querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
+    if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "Confirmer la suppression"; return; }
+    b.disabled = true;
+    try { await api("/api/evenements?id=" + b.dataset.del, { method: "DELETE" }); FEED = FEED.filter((e) => String(e.id) !== b.dataset.del); toast("Supprimé"); route(); }
+    catch (e) { toast(e.message); b.disabled = false; }
+  }));
+}
+
+async function viewFeed(main) {
+  main.innerHTML = `<div class="stack">${demoBanner()}
+    <div class="chips" role="group" aria-label="Filtrer le fil">${Object.entries(GROUPS).map(([k, l]) => `<button type="button" class="chip" data-g="${k}" aria-pressed="${k === feedFilter}">${l}</button>`).join("")}</div>
+    <div id="feed"><div class="empty">Chargement…</div></div></div>`;
+  bindDemo(main);
+  main.querySelectorAll("[data-g]").forEach((b) => (b.onclick = () => { feedFilter = b.dataset.g; main.querySelectorAll("[data-g]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); drawFeed(); }));
+  await loadFeed(true);
+  drawFeed();
+}
+
+function drawFeed() {
+  const box = $("#feed");
+  if (!box) return;
+  const list = FEED.filter((e) => feedFilter === "tout" || (TYPES[e.type] && TYPES[e.type].groupe === feedFilter));
+  if (!list.length) { box.innerHTML = '<div class="empty">Aucun événement ici pour l\'instant.</div>'; return; }
+  let h = "", last = "";
+  for (const e of list) {
+    const lab = dayLabel(parseUTC(e.cree_le));
+    if (lab !== last) { h += `<div class="day">${esc(lab)}</div>`; last = lab; }
+    h += evtHTML(e);
+  }
+  if (FEED_MORE) h += '<div class="row" style="justify-content:center;margin-top:10px"><button class="btn sm" type="button" id="moreFeed">Voir plus ancien</button></div>';
+  box.innerHTML = `<div class="feed">${h}</div>`;
+  bindFeed(box);
+  const more = $("#moreFeed");
+  if (more) more.onclick = async () => {
+    more.disabled = true;
+    try { const d = await api("/api/evenements?avant=" + FEED[FEED.length - 1].id); FEED = FEED.concat(d.evenements); FEED_MORE = d.suite; drawFeed(); }
+    catch (e) { toast(e.message); more.disabled = false; }
+  };
+}
+
+/* ---------- Déclarer ---------- */
+function viewNew(main, type) {
+  const allowed = Object.keys(TYPES).filter(can);
+  if (!type || !can(type)) {
+    main.innerHTML = `<div class="stack">${demoBanner()}<div class="hello"><h2>Que s'est-il passé ?</h2><p>Les bonnes personnes sont prévenues automatiquement.</p></div>
+      <div class="types">${allowed.map((k) => `<button type="button" class="type ${TYPES[k].ton}" data-t="${k}"><i></i>${esc(TYPES[k].label)}</button>`).join("")}</div></div>`;
+    bindDemo(main);
+    main.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => (location.hash = "nouveau/" + b.dataset.t)));
+    return;
+  }
+  const t = TYPES[type];
+  const f = (k) => t.champs.includes(k);
+  const sellers = (ME.equipe || []).filter((u) => ["vendeur", "apporteur", "admin"].includes(u.role));
+  const chooseSeller = ME.role === "admin" || ME.role === "pose";
+  main.innerHTML = `<div class="stack">${demoBanner()}
+    <div class="formhead"><button type="button" class="link" id="back">‹ Retour</button></div>
+    <div class="hello"><h2>${esc(t.label)}</h2><p>${esc(whoIsNotified(t))}</p></div>
+    <form class="form card" id="evtForm" novalidate>
+      ${f("client") ? `<div class="f"><label for="client">Client</label><input id="client" name="client" autocomplete="off" placeholder="M. ou Mme …" required></div>` : ""}
+      ${f("ville") || f("montant") ? `<div class="grid2">
+        ${f("ville") ? `<div class="f"><label for="ville">Ville</label><input id="ville" name="ville" autocomplete="off"></div>` : ""}
+        ${f("montant") ? `<div class="f"><label for="montant">Montant TTC</label><input id="montant" name="montant" inputmode="decimal" placeholder="0 €"></div>` : ""}</div>` : ""}
+      ${f("vendeur") ? (chooseSeller
+        ? `<div class="f"><label for="vendeur">Vendeur</label><select id="vendeur" name="vendeur_email"><option value="">Choisir…</option>${sellers.map((u) => `<option value="${esc(u.email)}">${esc(u.nom || u.email)}${u.role === "apporteur" ? " (apporteur)" : ""}</option>`).join("")}</select></div>`
+        : `<div class="f"><span class="small muted">Vendeur : <b>${esc(ME.nom || ME.email)}</b></span></div>`) : ""}
+      ${f("organisme") ? `<div class="f"><label for="organisme">Organisme</label><select id="organisme" name="organisme">${ORGANISMES.map((o) => `<option>${o}</option>`).join("")}</select></div>` : ""}
+      ${f("date") ? `<div class="f"><label for="date_evt">${type === "rdv" ? "Date et heure du RDV" : "Date et heure"}</label><input type="datetime-local" id="date_evt" name="date_evt"></div>` : ""}
+      ${f("commentaire") ? `<div class="f"><label for="commentaire">${type === "info" ? "Message" : "Commentaire"}</label><textarea id="commentaire" name="commentaire" ${type === "info" ? "required" : ""} placeholder="${type === "info" ? "Ton message à toute l'équipe" : "Facultatif"}"></textarea></div>` : ""}
+      <p class="err" id="formErr" hidden></p>
+      <button class="btn primary block" type="submit">Envoyer</button>
+    </form></div>`;
+  bindDemo(main);
+  $("#back", main).onclick = () => history.back();
+  const form = $("#evtForm", main);
+  form.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const fd = Object.fromEntries(new FormData(form).entries());
+    const err = $("#formErr", main); err.hidden = true;
+    if (f("client") && !fd.client.trim()) { err.textContent = "Indique le nom du client."; err.hidden = false; $("#client").focus(); return; }
+    if (type === "info" && !fd.commentaire.trim()) { err.textContent = "Écris le message."; err.hidden = false; return; }
+    const btn = form.querySelector("[type=submit]"); btn.disabled = true; btn.textContent = "Envoi…";
+    try {
+      const r = await api("/api/evenements", { method: "POST", body: { type, ...fd } });
+      FEED.unshift(r.evenement);
+      toast(r.prevenus ? `Envoyé · ${r.prevenus} personne${r.prevenus > 1 ? "s" : ""} prévenue${r.prevenus > 1 ? "s" : ""}` : "Enregistré");
+      location.hash = "fil";
+    } catch (e) { err.textContent = e.message; err.hidden = false; btn.disabled = false; btn.textContent = "Envoyer"; }
+  };
+}
+
+function whoIsNotified(t) {
+  const names = { admin: "la direction", pose: "la pose", vendeur: "les vendeurs", apporteur: "les apporteurs" };
+  const w = t.notif.roles.map((r) => names[r]);
+  if (t.notif.vendeur) w.push("le vendeur concerné");
+  return w.length ? "Prévient " + w.join(", ").replace(/, ([^,]*)$/, " et $1") + "." : "";
+}
+
+/* ---------- Chat de l'équipe ---------- */
+const EMOJIS = ["👍", "🔥", "😂", "💪", "🏆"];
+let CHAT = [];
+let chatTimer = null;
+const chatSeen = () => { try { return +localStorage.getItem("dcrf.chatVu") || 0; } catch { return 0; } };
+function markChatSeen(id) { try { if (id > chatSeen()) localStorage.setItem("dcrf.chatVu", id); } catch {} updateChatDot(); }
+function updateChatDot() {
+  const d = $("#chatDot");
+  if (d) d.hidden = !(ME && ME.chatDernier > chatSeen()) || location.hash.startsWith("#chat");
+}
+
+function bubbleHTML(m, prev) {
+  const mine = m.email === ME.email;
+  const d = parseUTC(m.cree_le);
+  const showName = !mine && (!prev || prev.email !== m.email || prev.type === "defi");
+  const counts = {};
+  (m.reactions || []).forEach((r) => { counts[r.emoji] = counts[r.emoji] || { n: 0, me: false }; counts[r.emoji].n++; if (r.email === ME.email) counts[r.emoji].me = true; });
+  const reacts = Object.entries(counts).map(([e, c]) => `<button type="button" class="rx ${c.me ? "on" : ""}" data-rx="${e}" data-id="${m.id}" aria-label="${e} (${c.n})">${e} <b>${c.n}</b></button>`).join("");
+  const canDel = mine || ME.role === "admin";
+  const tools = `<div class="msg-tools" hidden>${EMOJIS.map((e) => `<button type="button" class="rx-pick" data-rx="${e}" data-id="${m.id}">${e}</button>`).join("")}${canDel ? `<button type="button" class="rx-del" data-del-msg="${m.id}">Supprimer</button>` : ""}</div>`;
+  if (m.type === "defi") {
+    const ended = !!m.gagnant_email;
+    const inIt = (m.participants || []).some((p) => p.email === ME.email);
+    const canWin = !ended && (mine || ME.role === "admin");
+    const late = m.defi_fin && !ended && m.defi_fin < new Date().toISOString().slice(0, 10);
+    return `<div class="defi ${ended ? "done" : ""}" data-msg="${m.id}">
+      <div class="defi-top"><span class="defi-ic">${ico("trophy")}</span><div><span class="defi-k">Défi lancé par ${esc(m.nom)}</span><h3>${esc(m.defi_titre)}</h3></div></div>
+      ${m.texte ? `<p class="defi-txt">${esc(m.texte)}</p>` : ""}
+      <p class="defi-meta">${m.defi_fin ? `Jusqu'au ${fmtDateEvt(m.defi_fin)}${late ? " · terminé, gagnant à désigner" : ""}` : "Sans date de fin"} · ${(m.participants || []).length} participant${(m.participants || []).length > 1 ? "s" : ""}</p>
+      ${(m.participants || []).length ? `<div class="avs">${m.participants.map((p) => `<span class="av" title="${esc(p.nom)}">${initials(p.nom, p.email)}</span>`).join("")}</div>` : ""}
+      ${ended ? `<p class="defi-win">${ico("trophy")} Gagnant : <b>${esc(m.gagnant_nom)}</b></p>` : `<div class="row">
+        <button type="button" class="btn sm ${inIt ? "" : "primary"}" data-join="${m.id}">${inIt ? "Je me retire" : "Je relève le défi"}</button>
+        ${canWin ? `<select class="win-sel" data-win="${m.id}" aria-label="Désigner le gagnant"><option value="">Désigner le gagnant…</option>${(m.participants || []).concat((ME.equipe || []).filter((u) => !(m.participants || []).some((p) => p.email === u.email))).map((u) => `<option value="${esc(u.email)}">${esc(u.nom || u.email)}</option>`).join("")}</select>` : ""}
+      </div>`}
+      <div class="rxs">${reacts}<button type="button" class="rx add" data-more="${m.id}" aria-label="Réagir">+</button></div>${tools}
+    </div>`;
+  }
+  return `<div class="bub-row ${mine ? "mine" : ""}" data-msg="${m.id}">
+    ${!mine ? `<span class="av ${showName ? "" : "ghost"}">${showName ? initials(m.nom, m.email) : ""}</span>` : ""}
+    <div class="bub-col">${showName ? `<span class="bub-name">${esc(m.nom)}</span>` : ""}
+      <div class="bub" data-more="${m.id}" role="button" tabindex="0">${esc(m.texte)}<span class="bub-t">${hhmm(d)}</span></div>
+      ${reacts ? `<div class="rxs">${reacts}</div>` : ""}${tools}</div></div>`;
+}
+
+function drawChat(keepScroll) {
+  const box = $("#chatList");
+  if (!box) return;
+  const atBottom = innerHeight + scrollY >= document.body.scrollHeight - 120;
+  let h = "", day = "", prev = null;
+  for (const m of CHAT) {
+    const lab = dayLabel(parseUTC(m.cree_le));
+    if (lab !== day) { h += `<div class="day chat-day">${esc(lab)}</div>`; day = lab; prev = null; }
+    h += bubbleHTML(m, prev); prev = m;
+  }
+  box.innerHTML = h || '<div class="empty">Personne n\'a encore rien dit. Lance la discussion ou un défi !</div>';
+  if (!keepScroll || atBottom) scrollTo(0, document.body.scrollHeight);
+  if (CHAT.length) markChatSeen(CHAT[CHAT.length - 1].id);
+}
+
+function mergeChat(d) {
+  const byId = new Map(CHAT.map((m) => [m.id, m]));
+  (d.messages || []).forEach((m) => byId.set(m.id, m));
+  (d.defis || []).forEach((m) => { if (byId.has(m.id)) byId.set(m.id, m); });
+  CHAT = [...byId.values()].sort((a, b) => a.id - b.id);
+}
+
+async function pollChat() {
+  if (!location.hash.startsWith("#chat")) { clearInterval(chatTimer); chatTimer = null; return; }
+  const last = CHAT.length ? CHAT[CHAT.length - 1].id : 0;
+  try { const d = await api("/api/chat?apres=" + last); const before = JSON.stringify(CHAT); mergeChat(d); if (JSON.stringify(CHAT) !== before) drawChat(true); } catch {}
+}
+
+async function viewChat(main) {
+  main.innerHTML = `${demoBanner()}<div class="chat" id="chatList"><div class="empty">Chargement…</div></div>
+    <div class="composer-wrap"><form class="composer" id="composer">
+      <button type="button" class="btn sm defi-btn" id="newDefi" aria-label="Lancer un défi">${ico("trophy")}<span>Défi</span></button>
+      <textarea id="chatTxt" rows="1" placeholder="Écris à l'équipe…" aria-label="Message"></textarea>
+      <button type="submit" class="send" aria-label="Envoyer">${ico("send")}</button>
+    </form></div>
+    <dialog id="defiDlg"><form class="form dlg" id="defiForm" method="dialog">
+      <h3>Lancer un défi</h3>
+      <div class="f"><label for="df_titre">Le défi</label><input id="df_titre" maxlength="120" placeholder="Ex. : le premier à 3 ventes cette semaine" required></div>
+      <div class="f"><label for="df_txt">Détails et récompense</label><textarea id="df_txt" placeholder="Ex. : le gagnant choisit le resto vendredi"></textarea></div>
+      <div class="f"><label for="df_fin">Jusqu'au</label><input id="df_fin" type="date"></div>
+      <p class="err" id="dfErr" hidden></p>
+      <div class="row" style="justify-content:flex-end"><button class="btn sm" type="button" id="dfCancel">Annuler</button><button class="btn sm primary" type="submit">Lancer le défi</button></div>
+    </form></dialog>`;
+  bindDemo(main);
+  try { const d = await api("/api/chat"); CHAT = []; mergeChat(d); } catch (e) { toast(e.message); }
+  drawChat(false);
+  const list = $("#chatList");
+  const send = async (body) => { await api("/api/chat", { method: "POST", body }); await pollChat(); };
+  list.onclick = async (ev) => {
+    const t = ev.target.closest("button,[data-more]");
+    if (!t) return;
+    if (t.dataset.rx) { try { await send({ id: t.dataset.id, action: "reaction", emoji: t.dataset.rx }); await refreshChatAll(); } catch (e) { toast(e.message); } return; }
+    if (t.dataset.join) { t.disabled = true; try { await send({ id: t.dataset.join, action: "participer" }); await refreshChatAll(); } catch (e) { toast(e.message); t.disabled = false; } return; }
+    if (t.dataset.delMsg) {
+      if (t.dataset.sure !== "1") { t.dataset.sure = "1"; t.textContent = "Confirmer"; return; }
+      try { await send({ id: t.dataset.delMsg, action: "supprimer" }); CHAT = CHAT.filter((m) => String(m.id) !== t.dataset.delMsg); drawChat(true); } catch (e) { toast(e.message); } return;
+    }
+    if (t.dataset.more) {
+      const row = list.querySelector(`[data-msg="${t.dataset.more}"] .msg-tools`);
+      list.querySelectorAll(".msg-tools").forEach((x) => { if (x !== row) x.hidden = true; });
+      if (row) row.hidden = !row.hidden;
+    }
+  };
+  list.onchange = async (ev) => {
+    const s = ev.target.closest("[data-win]");
+    if (!s || !s.value) return;
+    try { await send({ id: s.dataset.win, action: "gagnant", email: s.value }); await refreshChatAll(); toast("Gagnant annoncé à l'équipe"); } catch (e) { toast(e.message); }
+  };
+  const txt = $("#chatTxt");
+  txt.oninput = () => { txt.style.height = "auto"; txt.style.height = Math.min(txt.scrollHeight, 140) + "px"; };
+  txt.onkeydown = (ev) => { if (ev.key === "Enter" && !ev.shiftKey && matchMedia("(min-width: 900px)").matches) { ev.preventDefault(); $("#composer").requestSubmit(); } };
+  $("#composer").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const v = txt.value.trim(); if (!v) return;
+    txt.value = ""; txt.style.height = "auto";
+    try { await send({ texte: v }); scrollTo(0, document.body.scrollHeight); } catch (e) { txt.value = v; toast(e.message); }
+  };
+  const dlg = $("#defiDlg");
+  $("#newDefi").onclick = () => { dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", ""); $("#df_titre").focus(); };
+  $("#dfCancel").onclick = () => dlg.close();
+  $("#defiForm").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const titre = $("#df_titre").value.trim(), err = $("#dfErr"); err.hidden = true;
+    if (!titre) { err.textContent = "Écris le défi."; err.hidden = false; return; }
+    try { await send({ defi: { titre, texte: $("#df_txt").value.trim(), fin: $("#df_fin").value } }); dlg.close(); ev.target.reset(); toast("Défi lancé, toute l'équipe est prévenue"); scrollTo(0, document.body.scrollHeight); }
+    catch (e) { err.textContent = e.message; err.hidden = false; }
+  };
+  clearInterval(chatTimer);
+  chatTimer = setInterval(pollChat, 5000);
+}
+
+async function refreshChatAll() {
+  try { const d = await api("/api/chat"); CHAT = []; mergeChat(d); drawChat(true); } catch {}
+}
+
+/* ---------- Équipe (direction) ---------- */
+let SESSIONS = [];
+async function refreshPending() {
+  if (!ME || ME.role !== "admin") return;
+  try {
+    const [u, se] = await Promise.all([api("/api/utilisateurs"), api("/api/sessions")]);
+    USERS = u.utilisateurs; SESSIONS = se.sessions;
+  } catch { return; }
+  const n = SESSIONS.filter((x) => x.statut === "attente").length;
+  const dot = $("#pendingDot");
+  if (dot) { dot.hidden = !n; dot.textContent = n; }
+}
+
+async function viewTeam(main) {
+  main.innerHTML = `<div class="stack">${demoBanner()}<div id="team"><div class="empty">Chargement…</div></div></div>`;
+  bindDemo(main);
+  await refreshPending();
+  drawTeam();
+}
+
+function drawTeam() {
+  const box = $("#team");
+  if (!box || !USERS) return;
+  const pending = SESSIONS.filter((x) => x.statut === "attente");
+  const active = SESSIONS.filter((x) => x.statut === "ok");
+  const members = USERS.filter((u) => u.role !== "attente");
+  const opt = (sel) => Object.entries(ROLES).filter(([k]) => k !== "attente").map(([k, l]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${l}</option>`).join("");
+  const seen = (u) => u.vu_le ? "vu " + dayLabel(parseUTC(u.vu_le)).toLowerCase() : "jamais connecté";
+  const since = (d) => { const m = Math.max(0, Math.round((Date.now() - parseUTC(d)) / 60000)); return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : `${dayLabel(parseUTC(d)).toLowerCase()} à ${hhmm(parseUTC(d))}`; };
+  box.innerHTML = `<div class="stack">
+    ${pending.length ? `<div class="sec"><h2>Connexions à valider</h2></div><div class="people">${pending.map((x) => {
+      const nouveau = !x.role || x.role === "attente";
+      return `<div class="req card callout warn" data-sid="${x.id}">
+        <div class="req-h"><span class="av">${initials(x.nom, x.email)}</span><div><b>${esc(x.nom || x.email)}</b><small>${esc(x.email)}</small></div></div>
+        <p class="small muted">${nouveau ? "Nouvelle personne" : esc(ROLES[x.role])} · ${esc(x.appareil || "Appareil")} · ${since(x.cree_le)}</p>
+        ${nouveau ? `<div class="f"><label for="role-${x.id}">Son rôle</label><select id="role-${x.id}"><option value="">Choisir…</option>${opt("").replace('<option value="bloque">Accès retiré</option>', "")}</select></div>` : ""}
+        <div class="row"><button class="btn sm primary" type="button" data-act="valider">Valider</button><button class="btn sm" type="button" data-act="refuser">Refuser</button></div>
+      </div>`; }).join("")}</div>` : ""}
+    <div class="sec"><h2>Équipe</h2><span class="small muted"><span class="bell"></span> notifications actives</span></div>
+    <div class="people">${members.map((u) => `
+      <div class="person"><span class="av">${initials(u.nom, u.email)}</span><b>${esc(u.nom || u.email)}${u.appareils ? '<span class="bell" title="Notifications actives"></span>' : ""}</b>
+        <select data-email="${esc(u.email)}" aria-label="Rôle de ${esc(u.nom || u.email)}" ${u.email === ME.email ? "disabled" : ""}>${opt(u.role)}</select>
+        <small>${esc(u.email)} · ${seen(u)}</small></div>`).join("")}</div>
+    ${active.length ? `<div class="sec"><h2>Appareils connectés</h2></div><div class="people">${active.map((x) => `
+      <div class="person"><span class="av">${initials(x.nom, x.email)}</span><b>${esc(x.nom || x.email)} · ${esc(x.appareil || "Appareil")}</b>
+        <button class="btn sm" type="button" data-out="${x.id}">Déconnecter</button>
+        <small>${x.vu_le ? "actif " + since(x.vu_le) : "connecté " + since(x.cree_le)}</small></div>`).join("")}</div>` : ""}
+    <div class="sec"><h2>Ajouter quelqu'un</h2></div>
+    <form class="form card" id="addUser" novalidate>
+      <div class="grid2"><div class="f"><label for="nu_nom">Prénom et nom</label><input id="nu_nom" name="nom" autocomplete="off"></div>
+      <div class="f"><label for="nu_role">Rôle</label><select id="nu_role" name="role">${opt("vendeur")}</select></div></div>
+      <div class="f"><label for="nu_email">E-mail</label><input id="nu_email" name="email" type="email" inputmode="email" autocomplete="off" placeholder="prenom@…"><span class="hint">Une fois ajoutée ici, la personne entre directement avec cette adresse et le mot de passe de l'équipe, sans validation.</span></div>
+      <p class="err" id="nuErr" hidden></p>
+      <button class="btn primary" type="submit">Ajouter</button>
+    </form>
+    <p class="small muted">Rôles : Direction voit tout et déclare tout. Vendeur et apporteur déclarent leurs ventes et annulations et voient leurs dossiers. Pose voit les ventes, financements et poses et déclare les chantiers.</p>
+  </div>`;
+  box.querySelectorAll("[data-sid]").forEach((card) => card.querySelectorAll("[data-act]").forEach((btn) => (btn.onclick = async () => {
+    const sel = card.querySelector("select");
+    if (btn.dataset.act === "valider" && sel && !sel.value) { toast("Choisis d'abord son rôle"); sel.focus(); return; }
+    card.querySelectorAll("button").forEach((x) => (x.disabled = true));
+    try {
+      await api("/api/sessions", { method: "POST", body: { id: card.dataset.sid, action: btn.dataset.act, role: sel ? sel.value : undefined } });
+      toast(btn.dataset.act === "valider" ? "Accès validé" : "Accès refusé");
+      await refreshPending(); drawTeam();
+    } catch (e) { toast(e.message); card.querySelectorAll("button").forEach((x) => (x.disabled = false)); }
+  })));
+  box.querySelectorAll("[data-out]").forEach((btn) => (btn.onclick = async () => {
+    if (btn.dataset.sure !== "1") { btn.dataset.sure = "1"; btn.textContent = "Confirmer"; return; }
+    btn.disabled = true;
+    try { await api("/api/sessions", { method: "POST", body: { id: btn.dataset.out, action: "deconnecter" } }); toast("Appareil déconnecté"); await refreshPending(); drawTeam(); }
+    catch (e) { toast(e.message); btn.disabled = false; }
+  }));
+  box.querySelectorAll("select[data-email]").forEach((s) => (s.onchange = async () => {
+    s.disabled = true;
+    try {
+      await api("/api/utilisateurs", { method: "POST", body: { email: s.dataset.email, role: s.value } });
+      toast("Rôle mis à jour");
+      await refreshPending(); drawTeam();
+    } catch (e) { toast(e.message); s.disabled = false; }
+  }));
+  $("#addUser").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const fd = Object.fromEntries(new FormData(ev.target).entries());
+    const err = $("#nuErr"); err.hidden = true;
+    try { await api("/api/utilisateurs", { method: "POST", body: fd }); toast("Ajouté"); await refreshPending(); drawTeam(); }
+    catch (e) { err.textContent = e.message; err.hidden = false; }
+  };
+}
+
+/* ---------- Réglages ---------- */
+async function pushState() {
+  if (!pushSupported()) return "absent";
+  if (Notification.permission === "denied") return "refuse";
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg && (await reg.pushManager.getSubscription());
+    return sub && Notification.permission === "granted" ? "actif" : "inactif";
+  } catch { return "inactif"; }
+}
+
+async function enablePush() {
+  if (DEMO) { toast("Pas de notifications dans l'aperçu."); return false; }
+  if (!pushSupported()) { toast(isIOS() && !standalone() ? "Installe d'abord l'appli sur l'écran d'accueil." : "Ce navigateur ne gère pas les notifications."); return false; }
+  if (!ME.vapidPublicKey) { toast("Notifications pas encore configurées sur le serveur."); return false; }
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") { toast("Notifications refusées. Tu peux les réactiver dans les réglages du téléphone."); return false; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(ME.vapidPublicKey) });
+    await api("/api/abonnement", { method: "POST", body: { subscription: sub.toJSON(), appareil: deviceName() } });
+    toast("Notifications activées sur cet appareil");
+    return true;
+  } catch (e) { toast("Activation impossible : " + e.message); return false; }
+}
+
+async function disablePush() {
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = reg && (await reg.pushManager.getSubscription());
+  if (sub) { await api("/api/abonnement", { method: "DELETE", body: { endpoint: sub.endpoint } }).catch(() => {}); await sub.unsubscribe(); }
+  toast("Notifications coupées sur cet appareil");
+}
+
+async function viewSettings(main) {
+  const st = await pushState();
+  const label = { actif: "Activées sur cet appareil", inactif: "Pas encore activées sur cet appareil", refuse: "Bloquées dans les réglages du téléphone ou du navigateur", absent: isIOS() && !standalone() ? "Installe d'abord l'appli sur l'écran d'accueil" : "Non disponibles dans ce navigateur" }[st];
+  main.innerHTML = `<div class="stack">${demoBanner()}
+    <div class="card"><h3>Mon compte</h3>
+      <p class="small muted">${esc(ME.email)} · ${esc(ROLES[ME.role])}</p>
+      <form class="row" id="nameForm" style="margin-top:10px"><div class="f" style="flex:1;min-width:180px"><label for="myName">Nom affiché</label><input id="myName" name="nom" value="${esc(ME.nom)}" autocomplete="name"></div><button class="btn sm" type="submit" style="align-self:end">Enregistrer</button></form>
+    </div>
+    <div class="card"><h3>Notifications</h3><p class="small muted">${label}</p>
+      <div class="row" style="margin-top:10px">
+        ${st === "actif" ? `<button class="btn sm" type="button" id="testPush">Envoyer un test</button><button class="btn sm" type="button" id="offPush">Couper ici</button>` : st === "inactif" ? `<button class="btn sm primary" type="button" id="onPush">${ico("bell")}Activer ici</button>` : ""}
+      </div></div>
+    <div class="card"><h3>Chat de l'équipe</h3><label class="switch"><input type="checkbox" id="chatNotif" ${ME.chat_notif === 0 ? "" : "checked"}><span>Me prévenir des nouveaux messages et défis</span></label></div>
+    <div class="card"><h3>Installer l'appli</h3>
+      ${standalone() ? '<p class="small muted">C\'est fait : tu utilises déjà l\'appli installée.</p>' : ""}
+      <p style="margin-top:8px"><b>iPhone</b> (avec Safari)</p>
+      <ol class="steps small"><li>Ouvre cette page dans Safari.</li><li>Touche le bouton Partager (le carré avec une flèche).</li><li>Choisis « Sur l'écran d'accueil », puis Ajouter.</li><li>Ouvre DCRF depuis l'icône, puis active les notifications ici.</li></ol>
+      <p style="margin-top:10px"><b>PC ou Mac</b> (Chrome ou Edge)</p>
+      <ol class="steps small"><li>Clique sur l'icône d'installation à droite de la barre d'adresse.</li><li>Valide « Installer ». DCRF apparaît dans tes applications.</li><li>Sur Mac avec Safari : menu Fichier, « Ajouter au Dock ».</li></ol>
+    </div>
+    ${DEMO ? "" : '<button class="btn" type="button" id="logout">Se déconnecter</button>'}
+  </div>`;
+  bindDemo(main);
+  $("#nameForm", main).onsubmit = async (ev) => {
+    ev.preventDefault();
+    const nom = $("#myName").value.trim();
+    try { if (!DEMO) await api("/api/profil", { method: "POST", body: { nom } }); ME.nom = nom; $("#meInit").textContent = initials(nom, ME.email); toast("Nom enregistré"); }
+    catch (e) { toast(e.message); }
+  };
+  const on = $("#onPush", main); if (on) on.onclick = async () => { await enablePush(); route(); };
+  const off = $("#offPush", main); if (off) off.onclick = async () => { await disablePush(); route(); };
+  const lo = $("#logout", main); if (lo) lo.onclick = logout;
+  $("#chatNotif", main).onchange = async (ev) => { const v = ev.target.checked; try { if (!DEMO) await api("/api/preferences", { method: "POST", body: { chat_notif: v } }); ME.chat_notif = v ? 1 : 0; toast(v ? "Notifications du chat activées" : "Chat en silencieux"); } catch (e) { ev.target.checked = !v; toast(e.message); } };
+  const test = $("#testPush", main); if (test) test.onclick = async () => {
+    test.disabled = true;
+    try { await api("/api/test-notif", { method: "POST" }); toast("Test envoyé"); } catch (e) { toast(e.message); }
+    test.disabled = false;
+  };
+}
+
+/* ---------- Connexion ---------- */
+const store = { get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+async function proof(password) {
+  const cfg = await api("/api/connexion");
+  const salt = b64uToBytes(cfg.sel);
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: cfg.iterations, hash: "SHA-256" }, key, 256));
+  return btoa(String.fromCharCode(...bits)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function bare() {
+  $("#nav").innerHTML = "";
+  $("#meBtn").hidden = true;
+  $("#title").textContent = "";
+}
+
+function viewLogin() {
+  bare();
+  const main = $("#main");
+  main.className = "main fade";
+  main.innerHTML = `<div class="login">
+    <div class="login-brand"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 20L20 7l15 13" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="11" y="22" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="3.5"/></svg></div>
+    <div class="hello"><h2>Appli DCRF</h2><p>Connecte-toi avec le mot de passe de l'équipe. Si tu fais partie de l'équipe, tu entres directement. Sinon, la direction valide ta demande.</p></div>
+    <form class="form card" id="loginForm" novalidate>
+      <div class="f"><label for="lg_nom">Prénom et nom</label><input id="lg_nom" autocomplete="name" value="${esc(store.get("dcrf.nom"))}" required></div>
+      <div class="f"><label for="lg_email">E-mail</label><input id="lg_email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" value="${esc(store.get("dcrf.email"))}" required></div>
+      <div class="f"><label for="lg_pwd">Mot de passe</label><input id="lg_pwd" type="password" autocomplete="current-password" required></div>
+      <p class="err" id="lgErr" hidden></p>
+      <button class="btn primary block" type="submit" id="lgBtn">Se connecter</button>
+    </form></div>`;
+  $("#loginForm").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const nom = $("#lg_nom").value.trim(), email = $("#lg_email").value.trim(), pwd = $("#lg_pwd").value;
+    const err = $("#lgErr"); err.hidden = true;
+    if (!nom || !email || !pwd) { err.textContent = "Remplis les trois champs."; err.hidden = false; return; }
+    const btn = $("#lgBtn"); btn.disabled = true; btn.textContent = "Connexion…";
+    try {
+      const preuve = await proof(pwd);
+      await api("/api/connexion", { method: "POST", body: { nom, email, preuve, appareil: deviceName() } });
+      store.set("dcrf.nom", nom); store.set("dcrf.email", email);
+      await boot();
+    } catch (e) { err.textContent = e.message; err.hidden = false; btn.disabled = false; btn.textContent = "Se connecter"; }
+  };
+}
+
+async function logout() {
+  try { await api("/api/connexion", { method: "DELETE" }); } catch {}
+  try { const reg = await navigator.serviceWorker.getRegistration(); const sub = reg && (await reg.pushManager.getSubscription()); if (sub) await sub.unsubscribe(); } catch {}
+  ME = null; location.hash = ""; viewLogin();
+}
+
+/* ---------- En attente de validation ---------- */
+let waitTimer = null;
+function viewWaiting() {
+  bare();
+  const main = $("#main");
+  const blocked = ME.role === "bloque";
+  main.innerHTML = `<div class="login">
+    <div class="login-brand ${blocked ? "" : "pulse"}"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 20L20 7l15 13" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="11" y="22" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="3.5"/></svg></div>
+    <div class="hello"><h2>${blocked ? "Accès retiré" : "En attente de validation"}</h2>
+    <p>${blocked ? "Ton accès à l'appli DCRF a été retiré. Rapproche-toi de la direction." : "La direction vient de recevoir ta demande sur son téléphone. Garde cette page ouverte : elle s'ouvre toute seule dès que c'est validé."}</p></div>
+    <p class="small muted">${esc(ME.nom || ME.email)} · ${esc(ME.email)}</p>
+    <button class="btn" type="button" id="wOut">${blocked ? "Se déconnecter" : "Annuler"}</button></div>`;
+  $("#wOut").onclick = () => { clearInterval(waitTimer); logout(); };
+  clearInterval(waitTimer);
+  if (!blocked) waitTimer = setInterval(async () => {
+    try { const m = await api("/api/moi"); if (m.connexion === "ok" && m.role !== "bloque") { clearInterval(waitTimer); toast("Accès validé, bienvenue"); boot(); } }
+    catch (e) { if (e.status === 401) clearInterval(waitTimer); }
+  }, 4000);
+}
+
+/* ================= Démarrage ================= */
+async function boot() {
+  try { ME = await api("/api/moi"); }
+  catch (e) {
+    if (e.status === 401) { ME = null; return viewLogin(); }
+    $("#main").innerHTML = `<div class="loading"><p>${esc(e.message)}</p><div class="row"><button class="btn primary" type="button" id="retry">Réessayer</button>${e.offline ? '<a class="btn" href="?demo">Voir l\'aperçu</a>' : ""}</div></div>`;
+    $("#retry").onclick = () => location.reload();
+    return;
+  }
+  $("#meInit").textContent = initials(ME.nom, ME.email);
+  $("#meBtn").hidden = false;
+  $("#meBtn").onclick = () => (location.hash = "reglages");
+  if (ME.connexion === "attente" || ["attente", "bloque"].includes(ME.role)) return viewWaiting();
+  clearInterval(waitTimer);
+  buildNav();
+  route();
+  resyncPush();
+}
+
+// Si les notifications étaient déjà autorisées, on renvoie l'abonnement (changement d'appareil, de compte…)
+async function resyncPush() {
+  if (DEMO || !pushSupported() || Notification.permission !== "granted" || !ME.vapidPublicKey) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) await api("/api/abonnement", { method: "POST", body: { subscription: sub.toJSON(), appareil: deviceName() } });
+  } catch {}
+}
+
+if ("serviceWorker" in navigator && !DEMO) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+  navigator.serviceWorker.addEventListener("message", (ev) => {
+    if (ev.data && ev.data.type === "push") { if (location.hash.startsWith("#chat")) { pollChat(); return; } if (/^(chat|defi)/.test(ev.data.tag || "") && ME) { ME.chatDernier = Number.MAX_SAFE_INTEGER; updateChatDot(); } FEED = []; const r = location.hash.replace("#", "").split("/")[0] || "accueil"; if (["accueil", "fil"].includes(r)) route(); }
+  });
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && ME && ME.connexion !== "attente" && !["attente", "bloque"].includes(ME.role)) {
+    const r = location.hash.replace("#", "").split("/")[0] || "accueil";
+    if (["accueil", "fil"].includes(r)) route();
+  }
+});
+
+boot();
+
+</script>
+
+</body>
+</html>
