@@ -15,9 +15,16 @@ const TYPES = {
   sav: { label: "Problème chantier / SAV", peut: ["admin", "pose", "vendeur"], notif: { roles: ["admin", "pose"], vendeur: true } },
   encaissement: { label: "Encaissement", peut: ["admin"], notif: { roles: ["admin"], vendeur: false } },
   info: { label: "Message à l'équipe", peut: ["admin"], notif: { roles: ["admin", "vendeur", "apporteur", "pose"], vendeur: false } },
+  // Types créés uniquement par le tableur (synchro automatique)
+  facturation: { label: "Dossier facturé", peut: [], notif: { roles: ["admin"], vendeur: true } },
+  classement: { label: "Classement & objectifs", peut: [], notif: { roles: ["admin", "vendeur", "apporteur"], vendeur: false } },
 };
-const VISIBLES_POSE = ["vente", "annulation", "financement_ok", "pose_planifiee", "pose_terminee", "sav", "info"];
+const VISIBLES_POSE = ["vente", "annulation", "financement_ok", "pose_planifiee", "pose_terminee", "sav", "info", "classement"];
+const VISIBLES_TOUS = ["info", "classement"];
 const EMOJIS = ["👍", "🔥", "😂", "💪", "🏆"];
+const COACH = ["t.hoarau.dcrf@gmail.com"]; // seules ces personnes voient l'espace Coach
+const RESA_JOURS = 7; // durée de réservation d'un client sur la carte
+const RESA_TABLE = "CREATE TABLE IF NOT EXISTS carte_resa (cle TEXT PRIMARY KEY, email TEXT, nom TEXT, motif TEXT, jusqua TEXT, cree_le TEXT)";
 const DIRECTION = [
   ["t.hoarau.dcrf@gmail.com", "Tristan", "admin"],
   ["diagnostique.hf@gmail.com", "Elias", "admin"],
@@ -55,6 +62,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS subs (endpoint TEXT PRIMARY KEY, email TEXT, p256dh TEXT, auth TEXT, appareil TEXT, cree_le TEXT)`,
   `CREATE TABLE IF NOT EXISTS config (cle TEXT PRIMARY KEY, valeur TEXT)`,
   `CREATE TABLE IF NOT EXISTS echecs (cle TEXT, ts INTEGER)`,
+  `CREATE TABLE IF NOT EXISTS auto_vus (cle TEXT PRIMARY KEY, cree_le TEXT)`,
   `CREATE INDEX IF NOT EXISTS ev_vendeur ON events(vendeur_email)`,
   `CREATE INDEX IF NOT EXISTS sub_email ON subs(email)`,
 ];
@@ -62,6 +70,11 @@ let schemaOk = false;
 async function ensureSchema(db) {
   if (schemaOk) return;
   await db.batch(SCHEMA.map((s) => db.prepare(s)));
+  // Colonnes ajoutées pour la synchro du tableur (sans effet si elles existent déjà)
+  const cols = (await db.prepare("PRAGMA table_info(events)").all()).results.map((c) => c.name);
+  for (const [c, def] of [["source", "TEXT"], ["vendeurs", "TEXT"]]) {
+    if (!cols.includes(c)) { try { await db.prepare(`ALTER TABLE events ADD COLUMN ${c} ${def}`).run(); } catch (e) {} }
+  }
   await db.batch(DIRECTION.map(([e, n, r]) => db.prepare("INSERT OR IGNORE INTO users (email, nom, role, cree_le) VALUES (?, ?, ?, ?)").bind(e, n, r, nowSQL())));
   schemaOk = true;
 }
@@ -174,7 +187,7 @@ function fmtDateEvt(s) {
 }
 function notifText(e) {
   const t = TYPES[e.type] || { label: e.type };
-  const title = e.type === "info" ? `Message de ${e.auteur_nom || "la direction"}` : t.label + (e.client ? ` · ${e.client}` : "");
+  const title = e.type === "info" ? `Message de ${e.auteur_nom || "la direction"}` : e.type === "classement" ? `🏆 ${e.client || t.label}` : t.label + (e.client ? ` · ${e.client}` : "");
   const bits = e.type === "info" ? [e.commentaire] : [e.vendeur_nom, e.organisme, e.montant ? eur(e.montant) : "", e.date_evt ? fmtDateEvt(e.date_evt) : "", e.ville, e.commentaire];
   return { title, body: bits.filter(Boolean).join(" · ").slice(0, 240) };
 }
@@ -250,6 +263,42 @@ const routes = {
     return json({ ok: true, note: { cle, statut, texte, auteur, cree_le } });
   },
 
+
+  /* ---------- Carte : réservation d'un client pendant 7 jours ---------- */
+  // Un vendeur qui positionne un RDV ou contacte un client le réserve : les autres le voient verrouillé 7 jours.
+  "GET /api/reservations": async ({ env, me }) => {
+    await env.DB.prepare(RESA_TABLE).run();
+    const { results } = await env.DB.prepare("SELECT cle, email, nom, motif, jusqua FROM carte_resa WHERE jusqua > ?").bind(nowSQL()).all();
+    return json({ reservations: results.map((r) => ({ ...r, mine: r.email === me.email })), moi: me.email, admin: me.role === "admin" });
+  },
+
+  "POST /api/reservations": async ({ req, env, me }) => {
+    await env.DB.prepare(RESA_TABLE).run();
+    const b = await readBody(req);
+    const cle = String(b.cle || "").slice(0, 40), motif = b.motif === "rdv" ? "rdv" : "contact";
+    if (!cle) return err("Client inconnu.");
+    const n = nowSQL();
+    const cur = await env.DB.prepare("SELECT * FROM carte_resa WHERE cle = ? AND jusqua > ?").bind(cle, n).first();
+    const auteur = me.nom || String(me.email).split("@")[0];
+    const note = (texte) => env.DB.prepare("INSERT INTO carte_notes (cle, statut, texte, auteur, cree_le) VALUES (?, '', ?, ?, ?)").bind(cle, texte, auteur, n.slice(0, 16));
+    await env.DB.prepare("CREATE TABLE IF NOT EXISTS carte_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, cle TEXT NOT NULL, statut TEXT, texte TEXT, auteur TEXT, cree_le TEXT)").run();
+    if (b.action === "liberer") {
+      if (!cur) return json({ ok: true });
+      if (cur.email !== me.email && me.role !== "admin") return err("Seul " + (cur.nom || "le vendeur") + " ou la direction peut libérer ce client.", 403);
+      await env.DB.batch([env.DB.prepare("DELETE FROM carte_resa WHERE cle = ?").bind(cle), note("🔓 Client libéré")]);
+      return json({ ok: true });
+    }
+    if (cur && cur.email !== me.email) return err(`Déjà réservé par ${cur.nom || cur.email} jusqu'au ${cur.jusqua.slice(8, 10)}/${cur.jusqua.slice(5, 7)}.`, 409);
+    const jusqua = new Date(Date.now() + RESA_JOURS * 864e5).toISOString().replace("T", " ").slice(0, 19);
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO carte_resa (cle, email, nom, motif, jusqua, cree_le) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(cle) DO UPDATE SET email = excluded.email, nom = excluded.nom, motif = excluded.motif, jusqua = excluded.jusqua, cree_le = excluded.cree_le")
+        .bind(cle, me.email, auteur, motif, jusqua, n),
+      note(`🔒 Réservé ${RESA_JOURS} jours (${motif === "rdv" ? "RDV positionné" : "client contacté"})`),
+    ]);
+    await env.DB.prepare("DELETE FROM carte_resa WHERE jusqua < ?").bind(n).run();
+    return json({ ok: true, reservation: { cle, email: me.email, nom: auteur, motif, jusqua, mine: true } });
+  },
+
   "GET /api/moi": async ({ env, me }) => {
     const base = { email: me.email, nom: me.nom, role: me.role, connexion: me.statut, chat_notif: me.chat_notif };
     if (!actif(me)) return json(base);
@@ -259,7 +308,7 @@ const routes = {
       env.DB.prepare("SELECT MAX(id) AS m FROM chat").first(),
       vapidKeys(env),
     ]);
-    return json({ ...base, vapidPublicKey: keys.pub, equipe: eq.results, appareils: ap.n, chatDernier: ch.m || 0 });
+    return json({ ...base, vapidPublicKey: keys.pub, equipe: eq.results, appareils: ap.n, chatDernier: ch.m || 0, coach: COACH.includes(me.email) });
   },
 
   "POST /api/profil": async ({ req, env, me }) => {
@@ -301,7 +350,10 @@ const routes = {
     const avant = parseInt(url.searchParams.get("avant")) || 0;
     const where = [], args = [];
     if (me.role === "pose") { where.push(`(type IN (${VISIBLES_POSE.map(() => "?").join(",")}) OR auteur_email = ?)`); args.push(...VISIBLES_POSE, me.email); }
-    else if (me.role !== "admin") { where.push("(vendeur_email = ? OR auteur_email = ? OR type = 'info')"); args.push(me.email, me.email); }
+    else if (me.role !== "admin") {
+      where.push(`(vendeur_email = ? OR auteur_email = ? OR type IN (${VISIBLES_TOUS.map(() => "?").join(",")}) OR instr(',' || COALESCE(vendeurs, '') || ',', ',' || ? || ',') > 0)`);
+      args.push(me.email, me.email, ...VISIBLES_TOUS, me.email);
+    }
     if (avant) { where.push("id < ?"); args.push(avant); }
     const { results } = await env.DB.prepare(`SELECT * FROM events ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY id DESC LIMIT 41`).bind(...args).all();
     return json({ evenements: results.slice(0, 40), suite: results.length > 40 });
@@ -344,6 +396,72 @@ const routes = {
     if (me.role !== "admin" && e.auteur_email !== me.email) return err("Tu ne peux supprimer que ce que tu as déclaré.", 403);
     await env.DB.prepare("DELETE FROM events WHERE id = ?").bind(id).run();
     return json({ ok: true });
+  },
+
+  /* ---------- Synchro automatique depuis le tableur (script Google) ---------- */
+  // Appelé par le script du tableur avec l'en-tête X-DCRF-Cle = variable secrète SYNC_KEY.
+  // Chaque événement porte une « cle » unique : le même événement n'est jamais créé deux fois.
+  "POST /api/auto": async ({ req, env }) => {
+    if (!env.SYNC_KEY) return err("La variable secrète SYNC_KEY n'est pas réglée dans Cloudflare.", 503);
+    if (!safeEq(String(req.headers.get("X-DCRF-Cle") || ""), String(env.SYNC_KEY))) return err("Clé de synchro refusée.", 401);
+    const b = await readBody(req);
+    if (b.test) return json({ ok: true, test: true });
+    if (b.stats && typeof b.stats === "object") {
+      const s = JSON.stringify(b.stats);
+      if (s.length < 200000) await env.DB.prepare("INSERT INTO config (cle, valeur) VALUES ('stats', ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur").bind(s).run();
+    }
+    const list = Array.isArray(b.evenements) ? b.evenements.slice(0, 150) : [];
+    const users = (await env.DB.prepare("SELECT email, nom FROM users WHERE role IN ('admin','vendeur','apporteur','pose')").all()).results;
+    const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+    const findUser = (v) => {
+      const em = normEmail(v && v.email);
+      if (em) { const u = users.find((x) => x.email === em); if (u) return u; }
+      const n = norm(v && v.nom);
+      return n ? users.find((x) => norm(x.nom) === n || norm(x.nom).split(/\s+/)[0] === n) || null : null;
+    };
+    const ilYa = (j) => new Date(Date.now() - j * 864e5).toISOString().replace("T", " ").slice(0, 19);
+    let crees = 0, ignores = 0;
+    for (const x of list) {
+      const t = TYPES[x.type], cle = clean(x.cle, 200);
+      if (!t || !cle) { ignores++; continue; }
+      const vu = await env.DB.prepare("INSERT OR IGNORE INTO auto_vus (cle, cree_le) VALUES (?, ?)").bind(cle, nowSQL()).run();
+      if (!vu.meta.changes) { ignores++; continue; }
+      const client = clean(x.client, 120);
+      // Déjà déclaré à la main dans l'appli ces 4 derniers jours ? On ne le double pas.
+      const mot = norm(x.nom_cle || "").replace(/[^a-z0-9 -]/g, "");
+      if (mot.length >= 3 && x.type !== "classement") {
+        const dup = await env.DB.prepare("SELECT id FROM events WHERE type = ? AND source IS NULL AND lower(client) LIKE ? AND cree_le > ?").bind(x.type, "%" + mot + "%", ilYa(4)).first();
+        if (dup) { ignores++; continue; }
+      }
+      const vs = (Array.isArray(x.vendeurs) ? x.vendeurs : []).map((v) => ({ v, u: findUser(v) }));
+      const emails = [...new Set(vs.map((o) => o.u && o.u.email).filter(Boolean))];
+      const noms = vs.map((o) => (o.u && o.u.nom) || clean(o.v && o.v.nom, 40)).filter(Boolean);
+      let montant = x.montant != null && x.montant !== "" ? parseFloat(x.montant) : null;
+      if (montant != null && (!isFinite(montant) || montant < 0 || montant > 1e7)) montant = null;
+      const e = {
+        type: x.type, client, ville: clean(x.ville, 80), montant, organisme: clean(x.organisme, 40),
+        date_evt: /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(x.date_evt || "") ? x.date_evt : null,
+        commentaire: clean(x.commentaire, 2000), vendeur_email: emails[0] || null, vendeur_nom: noms.join(" + ") || null,
+        auteur_email: null, auteur_nom: "Tableur DCRF", cree_le: nowSQL(), source: "tableur", vendeurs: emails.join(",") || null,
+      };
+      const r = await env.DB.prepare(`INSERT INTO events (type, client, ville, montant, organisme, date_evt, commentaire, vendeur_email, vendeur_nom, auteur_email, auteur_nom, cree_le, source, vendeurs)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(e.type, e.client, e.ville, e.montant, e.organisme, e.date_evt, e.commentaire, e.vendeur_email, e.vendeur_nom, e.auteur_email, e.auteur_nom, e.cree_le, e.source, e.vendeurs).run();
+      e.id = r.meta.last_row_id;
+      crees++;
+      let dest = await emailsByRoles(env, t.notif.roles);
+      if (t.notif.vendeur) dest.push(...emails);
+      await notify(env, dest, { ...notifText(e), tag: "evt-" + e.id, url: "/#fil" });
+    }
+    // Ménage : on garde 1 an de clés
+    await env.DB.prepare("DELETE FROM auto_vus WHERE cree_le < ?").bind(ilYa(365)).run();
+    return json({ ok: true, crees, ignores });
+  },
+
+  /* ---------- Coach (réservé à Tristan) ---------- */
+  "GET /api/coach": async ({ env, me }) => {
+    if (!COACH.includes(me.email)) return err("Réservé à Tristan.", 403);
+    const r = await env.DB.prepare("SELECT valeur FROM config WHERE cle = 'stats'").first();
+    return json({ stats: r ? JSON.parse(r.valeur) : null });
   },
 
   /* ---------- Équipe (direction) ---------- */
@@ -462,7 +580,7 @@ const routes = {
   },
 };
 
-const PUBLIC = new Set(["GET /api/connexion", "POST /api/connexion", "DELETE /api/connexion"]);
+const PUBLIC = new Set(["GET /api/connexion", "POST /api/connexion", "DELETE /api/connexion", "POST /api/auto"]);
 const EN_ATTENTE_OK = new Set(["GET /api/moi"]);
 
 /* ================= Relais PVGIS (simulateur solaire) ================= */
