@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ciblage DPE terrain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* Layout : barre de recherche, puis classement des rues + carte, puis fiches adresse côté pair / impair */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#17212b; --muted:#5b6876; --line:#d9dfe5;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --soft:#e6eef5;
+  --ok:#2f8a4f; --warn:#c77700; --bad:#c23a2b;
+  --dpe-a:#009c6d; --dpe-b:#52b153; --dpe-c:#78bd76; --dpe-d:#f4e70f; --dpe-e:#f0b50f; --dpe-f:#eb8235; --dpe-g:#d7221f;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --surface:#17202a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2a3644;
+  --accent:#5aa6dc; --accent-ink:#0b1219; --soft:#1c2c3b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --surface:#17202a; --ink:#e7edf3; --muted:#9aa8b6; --line:#2a3644;
+  --accent:#5aa6dc; --accent-ink:#0b1219; --soft:#1c2c3b; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:16px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance}
+h1{font-size:30px;line-height:1.05}
+h2{font-size:22px}
+h3{font-size:19px}
+.sub{color:var(--muted);margin:4px 0 0;max-width:70ch}
+.label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.search{display:grid;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:grid;gap:4px;min-width:0}
+.field.grow{flex:1 1 240px;position:relative}
+input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:600 15px var(--f-body);cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+.suggest{position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--surface);border:1px solid var(--line);border-radius:8px;margin-top:4px;overflow:hidden}
+.suggest button{display:block;width:100%;text-align:left;border:0;border-radius:0;font-weight:500}
+.suggest button:hover{background:var(--soft)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{width:40px;height:40px;padding:0;font:700 18px var(--f-display);border-radius:6px;border:2px solid transparent;opacity:.35;color:#111}
+.chip[aria-pressed="true"]{opacity:1;border-color:var(--ink)}
+.toggle{display:flex;gap:8px;align-items:center;font-weight:500}
+.status{font-family:var(--f-data);font-size:13px;color:var(--muted);min-height:1.2em}
+.status.err{color:var(--bad)}
+.main{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+#map{height:440px;border-radius:10px;border:1px solid var(--line);z-index:0}
+.streets{display:grid;gap:6px;max-height:440px;overflow:auto;padding-right:4px}
+.street{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;text-align:left;padding:10px 12px;font-weight:500}
+.street[aria-current="true"]{border-color:var(--accent);background:var(--soft)}
+.street .nm{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.street .sc{font:500 13px var(--f-data);color:var(--muted);text-align:right}
+.bar{grid-column:1/-1;display:flex;height:8px;border-radius:3px;overflow:hidden;background:var(--line)}
+.bar span{display:block;height:100%}
+.street .meta{grid-column:1/-1;font-size:13px;color:var(--muted)}
+.badge{display:inline-block;font:600 12px var(--f-body);padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--accent)}
+.empty{color:var(--muted);padding:18px 4px;max-width:60ch}
+.tour-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.tour-head .actions{display:flex;gap:8px;flex-wrap:wrap}
+.sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:12px}
+@media (max-width:860px){.sides{grid-template-columns:minmax(0,1fr)}}
+.side{display:grid;gap:10px;align-content:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:8px;min-width:0}
+.card-top{display:flex;gap:10px;align-items:flex-start}
+.dpe{flex:none;width:46px;height:46px;border-radius:6px;display:grid;place-items:center;font:700 26px var(--f-display);color:#111}
+.adr{min-width:0;flex:1}
+.adr strong{font-size:17px;display:block;overflow-wrap:anywhere}
+.adr .k{font:13px var(--f-data);color:var(--muted)}
+dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;margin:0;font-size:14px}
+dt{color:var(--muted)}
+dd{margin:0;overflow-wrap:anywhere}
+.num{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+.pitch{margin:0;padding-left:18px;display:grid;gap:2px}
+.pitch li::marker{color:var(--accent)}
+.hook{background:var(--soft);border-radius:6px;padding:8px 10px;font-weight:500}
+.warn{color:var(--warn);font-size:13px}
+.visit{display:flex;gap:6px;flex-wrap:wrap}
+.visit button{padding:5px 10px;font-size:13px}
+.visit button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.src{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  .search,.main,.tour-head .actions,.visit,.noprint{display:none!important}
+  .card{break-inside:avoid;border-color:#999}
+  .sides{grid-template-columns:1fr 1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ciblage DPE terrain</h1>
+    <p class="sub">Choisis une commune et les étiquettes DPE à viser. L'outil classe les rues et lotissements où se concentrent ces logements, puis sort une fiche par adresse pour la tournée en porte-à-porte. Sources : BDNB / Go-Rénove (CSTB), qui croise les DPE de l'ADEME, le bâti et les ventes DVF.</p>
+  </header>
+
+  <section class="panel search" aria-label="Recherche">
+    <div class="row">
+      <div class="field grow">
+        <label class="label" for="commune">Commune ou code postal</label>
+        <input type="text" id="commune" autocomplete="off" placeholder="ex. Chinon, 49400…" value="">
+        <div class="suggest" id="suggest" hidden></div>
+      </div>
+      <div class="field">
+        <span class="label">Étiquettes DPE visées</span>
+        <div class="chips" id="chips"></div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="maisons" checked> Maisons seulement</label>
+      <button class="primary" id="go" disabled>Analyser</button>
+    </div>
+    <div class="status" id="status" role="status">Tape le nom d'une commune puis choisis-la dans la liste.</div>
+  </section>
+
+  <section class="main" id="main" hidden>
+    <div class="panel" style="display:grid;gap:10px;align-content:start">
+      <div class="tour-head"><h2>Rues à cibler</h2><span class="label" id="nbRues"></span></div>
+      <div class="legend" id="legend"></div>
+      <div class="streets" id="streets"></div>
+    </div>
+    <div id="map" aria-label="Carte des logements ciblés"></div>
+  </section>
+
+  <section class="panel" id="tour" hidden>
+    <div class="tour-head">
+      <div>
+        <span class="label">Tournée</span>
+        <h2 id="tourTitle"></h2>
+        <div class="src" id="tourMeta"></div>
+      </div>
+      <div class="actions">
+        <button id="csv">Exporter CSV</button>
+        <button id="print">Imprimer la tournée</button>
+      </div>
+    </div>
+    <div class="sides">
+      <div class="side"><h3>Côté impair</h3><div class="side" id="impair"></div></div>
+      <div class="side"><h3>Côté pair</h3><div class="side" id="pair"></div></div>
+    </div>
+    <p class="src">Le statut de visite (absent, RDV…) reste enregistré sur cet appareil. Les données BDNB sont mises à jour trois fois par an : un DPE de la semaine dernière peut ne pas encore y figurer.</p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+<script>
+(function(){
+const API = 'https://api.bdnb.io/v1/bdnb/donnees/';
+const CLASSES = ['A','B','C','D','E','F','G'];
+const COLORS = {A:'#009c6d',B:'#52b153',C:'#78bd76',D:'#f4e70f',E:'#f0b50f',F:'#eb8235',G:'#d7221f'};
+const WEIGHT = {A:.1,B:.1,C:.2,D:.5,E:1,F:2,G:3};
+const VISITS = [['todo','À faire'],['absent','Absent'],['refus','Pas intéressé'],['rappel','À rappeler'],['rdv','RDV pris']];
+proj4.defs('EPSG:2154','+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let selected = new Set(['E','F','G']);
+let commune = null, buildings = [], streets = [], current = null, dvf = {};
+let map, layer;
+
+/* ---------- état de visite (local à l'appareil) ---------- */
+function loadVisits(){ try { return JSON.parse(localStorage.getItem('dpe-visites') || '{}'); } catch(e){ return {}; } }
+function saveVisit(id, v){ const all = loadVisits(); all[id] = v; try { localStorage.setItem('dpe-visites', JSON.stringify(all)); } catch(e){} }
+
+/* ---------- étiquettes ---------- */
+const chips = $('chips');
+CLASSES.forEach(c => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.textContent = c; b.style.background = COLORS[c];
+  b.setAttribute('aria-pressed', selected.has(c)); b.title = 'Étiquette ' + c;
+  b.onclick = () => { selected.has(c) ? selected.delete(c) : selected.add(c); b.setAttribute('aria-pressed', selected.has(c)); updateGo(); };
+  chips.appendChild(b);
+});
+$('legend').innerHTML = CLASSES.map(c => `<span><i style="background:${COLORS[c]}"></i>${c}</span>`).join('');
+function updateGo(){ $('go').disabled = !commune || selected.size === 0; }
+
+function setStatus(msg, err){ const s = $('status'); s.textContent = msg; s.classList.toggle('err', !!err); }
+
+/* ---------- recherche de commune (API Géo) ---------- */
+let tmr;
+$('commune').addEventListener('input', e => {
+  commune = null; updateGo();
+  const q = e.target.value.trim();
+  clearTimeout(tmr);
+  if (q.length < 2) { $('suggest').hidden = true; return; }
+  tmr = setTimeout(async () => {
+    const isCP = /^\d{5}$/.test(q);
+    const url = 'https://geo.api.gouv.fr/communes?' + (isCP ? 'codePostal=' + q : 'nom=' + encodeURIComponent(q) + '&boost=population') + '&fields=nom,code,codesPostaux,departement&limit=8';
+    try {
+      const list = await (await fetch(url)).json();
+      const box = $('suggest');
+      box.innerHTML = '';
+      list.forEach(c => {
+        const b = document.createElement('button');
+        b.textContent = `${c.nom} (${(c.codesPostaux||[])[0] || c.code}) · ${c.departement ? c.departement.nom : ''}`;
+        b.onclick = () => { commune = c; $('commune').value = c.nom; box.hidden = true; updateGo(); setStatus(`${c.nom} sélectionnée (INSEE ${c.code}). Lance l'analyse.`); };
+        box.appendChild(b);
+      });
+      box.hidden = list.length === 0;
+    } catch(err) { setStatus("Impossible de chercher la commune : vérifie la connexion internet.", true); }
+  }, 250);
+});
+
+/* ---------- BDNB ---------- */
+async function getJSON(url){
+  const r = await fetch(url, {headers:{Accept:'application/json'}});
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+async function fetchBuildings(insee, classes){
+  const page = 500; let all = [];
+  for (let off = 0; off < 6000; off += page) {
+    const url = `${API}batiment_groupe_complet?code_commune_insee=eq.${insee}&classe_bilan_dpe=in.(${classes.join(',')})&limit=${page}&offset=${off}`;
+    const rows = await getJSON(url);
+    all = all.concat(rows);
+    setStatus(`Chargement BDNB… ${all.length} bâtiments`);
+    if (rows.length < page) break;
+  }
+  return all;
+}
+async function fetchDVF(ids){
+  const out = {};
+  for (let i = 0; i < ids.length; i += 40) {
+    const chunk = ids.slice(i, i + 40).map(id => `"${id}"`).join(',');
+    try {
+      const rows = await getJSON(`${API}batiment_groupe_dvf_open_representatif?batiment_groupe_id=in.(${encodeURIComponent(chunk)})`);
+      rows.forEach(r => { const p = out[r.batiment_groupe_id]; if (!p || (r.date_mutation || '') > (p.date_mutation || '')) out[r.batiment_groupe_id] = r; });
+    } catch(e) { /* DVF facultatif */ }
+  }
+  return out;
+}
+
+/* ---------- mise en forme des données ---------- */
+const SMALL = new Set(['de','du','des','la','le','les','l','d','et','sur','sous','aux','au','en']);
+function titre(s){
+  return String(s).toLowerCase().split(/(\s+|-|')/).map((w,i) => (i > 0 && SMALL.has(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join('');
+}
+function firstAdr(b){
+  if (b.libelle_adr_principale_ban) return b.libelle_adr_principale_ban;
+  let l = b.l_libelle_adr;
+  if (typeof l === 'string') { try { l = JSON.parse(l); } catch(e) { l = [l.replace(/^[\[{"]+|[\]}"]+$/g,'').split('","')[0]]; } }
+  return Array.isArray(l) && l.length ? l[0] : '';
+}
+function parseAdr(b){
+  const raw = String(firstAdr(b) || '').trim();
+  const noCity = raw.replace(/\s+\d{5}\s+.*$/, '');
+  const m = noCity.match(/^(\d+)\s*(bis|ter|quater|[a-z](?=\s))?\s+(.+)$/i);
+  if (m) return {num: +m[1], suf: (m[2] || '').toLowerCase(), rue: titre(m[3]), raw};
+  return {num: null, suf: '', rue: noCity ? titre(noCity) : 'Adresse non renseignée', raw};
+}
+function centroid(g){
+  try {
+    if (typeof g === 'string') g = JSON.parse(g);
+    const ring = g.type === 'MultiPolygon' ? g.coordinates[0][0] : g.coordinates[0];
+    let x = 0, y = 0; ring.forEach(p => { x += p[0]; y += p[1]; }); x /= ring.length; y /= ring.length;
+    if (Math.abs(x) <= 180 && Math.abs(y) <= 90) return [y, x];
+    const [lon, lat] = proj4('EPSG:2154', 'EPSG:4326', [x, y]);
+    return [lat, lon];
+  } catch(e) { return null; }
+}
+function year(b){ return b.annee_construction || b.annee_construction_dpe || null; }
+function isHouse(b){
+  const t = String(b.type_batiment_dpe || '').toLowerCase();
+  if (t.includes('appartement') || t.includes('immeuble')) return false;
+  if (b.nb_log && b.nb_log > 2) return false;
+  return true;
+}
+function median(a){ const s = [...a].sort((x,y)=>x-y); const n = s.length; return n ? (n % 2 ? s[(n-1)/2] : (s[n/2-1] + s[n/2]) / 2) : null; }
+function stdev(a){ if (a.length < 2) return 0; const m = a.reduce((x,y)=>x+y,0)/a.length; return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/(a.length-1)); }
+const fmt = (v, u) => (v === null || v === undefined || v === '') ? '—' : (typeof v === 'number' ? Math.round(v).toLocaleString('fr-FR') : esc(v)) + (u ? ' ' + u : '');
+const low = v => String(v || '').toLowerCase();
+
+/* ---------- argumentaire automatique ---------- */
+function pitch(b, sale){
+  const out = [], warns = [];
+  const en = low(b.type_energie_chauffage), gen = low(b.type_generateur_chauffage), age = low(b.type_generateur_chauffage_anciennete);
+  if (en.includes('fioul')) out.push('Chauffage fioul : remplacement par pompe à chaleur air/eau, aides MaPrimeRénov\' + CEE');
+  else if (en.includes('gaz') && /ancien|vieux/.test(age)) out.push('Chaudière gaz ' + age + ' : pompe à chaleur ou système hybride');
+  else if (en.includes('elec') && /joule|convecteur|radiateur|panneau/.test(gen)) out.push('Chauffage électrique direct : PAC air/air ou air/eau, gros levier sur la facture');
+  else if (en.includes('gpl') || en.includes('propane')) out.push('Chauffage GPL : pompe à chaleur');
+  else if (en.includes('bois') && /ancien/.test(age)) out.push('Appareil bois ' + age + ' : poêle ou insert récent');
+  const uh = b.u_plancher_haut_deperditif, ih = low(b.type_isolation_plancher_haut);
+  if ((uh && uh > 0.4) || /non isol/.test(ih)) out.push('Toiture / combles peu ou pas isolés' + (uh ? ` (U ${uh.toFixed(2)})` : '') + ' : isolation des combles');
+  const um = b.u_mur_exterieur, im = low(b.type_isolation_mur_exterieur);
+  if ((um && um > 1) || /non isol/.test(im)) out.push('Murs déperditifs' + (um ? ` (U ${um.toFixed(2)})` : '') + ' : isolation des murs (ITE ou ITI)');
+  if (/simple/.test(low(b.type_vitrage)) || (b.uw && b.uw > 4)) out.push('Simple vitrage : menuiseries double vitrage');
+  if (/ouverture|naturelle|sans|aucune/.test(low(b.type_ventilation))) out.push('Ventilation par ouverture des fenêtres : VMC');
+  if (b.batenr_favorabilite_solaire_thermique === true) out.push('Bâtiment favorable au solaire thermique (chauffe-eau solaire)');
+  if (b.perimetre_bat_historique) warns.push('Périmètre monument historique : façade et ITE soumises à l\'avis de l\'ABF');
+  if (b.l_denomination_proprietaire) warns.push('Propriétaire personne morale : ' + (Array.isArray(b.l_denomination_proprietaire) ? b.l_denomination_proprietaire.join(', ') : b.l_denomination_proprietaire));
+  let hook = '';
+  const c = b.classe_bilan_dpe;
+  if (c === 'G') hook = 'Classé G : location interdite depuis 2025, audit obligatoire à la vente.';
+  else if (c === 'F') hook = 'Classé F : location interdite en 2028, audit obligatoire à la vente.';
+  else if (c === 'E') hook = 'Classé E : location interdite en 2034, audit obligatoire à la vente depuis 2025.';
+  if (sale && sale.date_mutation) {
+    const yrs = (Date.now() - new Date(sale.date_mutation)) / 3.156e10;
+    if (yrs < 3) hook += ' Acheté il y a moins de 3 ans : nouveaux propriétaires, travaux souvent à l\'étude.';
+  }
+  return {out, warns, hook: hook.trim()};
+}
+
+/* ---------- analyse ---------- */
+$('go').onclick = async () => {
+  if (!commune) return;
+  $('go').disabled = true; $('tour').hidden = true;
+  try {
+    setStatus('Interrogation de la BDNB…');
+    let rows = await fetchBuildings(commune.code, [...selected]);
+    if ($('maisons').checked) rows = rows.filter(isHouse);
+    buildings = rows.map(b => ({b, a: parseAdr(b), ll: centroid(b.geom_groupe)}));
+    groupStreets();
+    renderStreets(); renderMap();
+    $('main').hidden = false;
+    setStatus(`${buildings.length} logements ${[...selected].sort().join('/')} trouvés à ${commune.nom}, répartis sur ${streets.length} rues.`);
+    if (!buildings.length) setStatus(`Aucun logement ${[...selected].join('/')} connu à ${commune.nom}. Élargis les étiquettes.`);
+  } catch(e) {
+    setStatus("La BDNB ne répond pas (" + e.message + "). Réessaie dans une minute ; si ça persiste, ouvre l'outil depuis un navigateur connecté à internet.", true);
+  }
+  updateGo();
+};
+
+function groupStreets(){
+  const by = {};
+  buildings.forEach(x => { (by[x.a.rue] = by[x.a.rue] || []).push(x); });
+  streets = Object.entries(by).map(([rue, list]) => {
+    const yrs = list.map(x => year(x.b)).filter(Boolean);
+    const med = median(yrs), sd = stdev(yrs);
+    const counts = {}; list.forEach(x => counts[x.b.classe_bilan_dpe] = (counts[x.b.classe_bilan_dpe] || 0) + 1);
+    const score = list.reduce((s,x) => s + (WEIGHT[x.b.classe_bilan_dpe] || 0), 0);
+    const lotiss = list.length >= 4 && yrs.length >= 3 && sd <= 12 && med >= 1945 && med <= 2005;
+    return {rue, list, med, sd, counts, score, lotiss};
+  }).sort((a,b) => b.score - a.score);
+}
+
+function renderStreets(){
+  $('nbRues').textContent = streets.length + ' rues';
+  const box = $('streets');
+  if (!streets.length) { box.innerHTML = '<p class="empty">Aucune rue à afficher pour ces critères.</p>'; return; }
+  box.innerHTML = '';
+  streets.slice(0, 150).forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'street';
+    btn.setAttribute('aria-current', current === s);
+    const bar = CLASSES.filter(c => s.counts[c]).map(c => `<span style="width:${100 * s.counts[c] / s.list.length}%;background:${COLORS[c]}"></span>`).join('');
+    const decade = s.med ? `bâti médian ${Math.round(s.med)}` : 'année inconnue';
+    btn.innerHTML = `<span class="nm">${esc(s.rue)}</span><span class="sc">${s.list.length} log.</span>
+      <span class="bar">${bar}</span>
+      <span class="meta">${CLASSES.filter(c => s.counts[c]).map(c => c + ' ×' + s.counts[c]).join(' · ')} · ${decade}
+      ${s.lotiss ? ` <span class="badge">Lotissement probable, années ${Math.floor(s.med/10)*10}</span>` : ''}</span>`;
+    btn.onclick = () => selectStreet(s);
+    box.appendChild(btn);
+  });
+}
+
+function renderMap(){
+  if (!map) {
+    map = L.map('map');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap'}).addTo(map);
+  }
+  if (layer) layer.remove();
+  layer = L.layerGroup().addTo(map);
+  const pts = [];
+  buildings.forEach(x => {
+    if (!x.ll) return;
+    pts.push(x.ll);
+    const s = streets.find(s => s.rue === x.a.rue);
+    L.circleMarker(x.ll, {radius: 6, weight: 1, color: '#111', fillColor: COLORS[x.b.classe_bilan_dpe] || '#999', fillOpacity: .9})
+      .bindTooltip(`${x.a.num ?? ''}${x.a.suf} ${x.a.rue} · DPE ${x.b.classe_bilan_dpe}`)
+      .on('click', () => s && selectStreet(s))
+      .addTo(layer);
+  });
+  if (pts.length) map.fitBounds(pts, {padding: [20, 20]});
+  setTimeout(() => map.invalidateSize(), 50);
+}
+
+async function selectStreet(s){
+  current = s;
+  renderStreets();
+  const pts = s.list.map(x => x.ll).filter(Boolean);
+  if (pts.length) map.fitBounds(pts, {padding: [40, 40], maxZoom: 18});
+  $('tour').hidden = false;
+  $('tourTitle').textContent = s.rue + ' — ' + commune.nom;
+  $('tourMeta').textContent = 'Chargement des ventes DVF…';
+  renderTour();
+  $('tour').scrollIntoView({behavior: 'smooth', block: 'start'});
+  dvf = Object.assign(dvf, await fetchDVF(s.list.map(x => x.b.batiment_groupe_id).filter(id => !(id in dvf))));
+  s.dvfLoaded = true;
+  if (current === s) renderTour();
+}
+
+function card(x){
+  const b = x.b, sale = dvf[b.batiment_groupe_id], p = pitch(b, sale);
+  const visits = loadVisits(), v = visits[b.batiment_groupe_id] || 'todo';
+  const el = document.createElement('article');
+  el.className = 'card';
+  const c = b.classe_bilan_dpe || '?';
+  const chauff = [b.type_energie_chauffage, b.type_generateur_chauffage, b.type_generateur_chauffage_anciennete].filter(Boolean).join(' · ');
+  const vente = sale && sale.date_mutation
+    ? `${new Date(sale.date_mutation).toLocaleDateString('fr-FR')} · ${fmt(sale.valeur_fonciere, '€')}${sale.prix_m2_local ? ' · ' + fmt(sale.prix_m2_local, '€/m²') : ''}${sale.surface_bati_mutee_residencielle_individuelle ? ' · ' + sale.surface_bati_mutee_residencielle_individuelle + ' m²' : ''}${sale.nb_piece_principale ? ' · ' + sale.nb_piece_principale + ' p.' : ''}`
+    : (current && current.dvfLoaded ? 'Aucune vente connue depuis 2014' : 'chargement…');
+  el.innerHTML = `
+    <div class="card-top">
+      <div class="dpe" style="background:${COLORS[c] || '#bbb'}" aria-label="DPE ${c}">${c}</div>
+      <div class="adr"><strong>${x.a.num ?? ''}${esc(x.a.suf)} ${esc(x.a.rue)}</strong>
+        <span class="k">${fmt(b.conso_5_usages_ep_m2, 'kWh/m²/an')} · GES ${fmt(b.emission_ges_5_usages_m2, 'kgCO₂/m²')}${b.date_reception_dpe ? ' · DPE du ' + new Date(b.date_reception_dpe).toLocaleDateString('fr-FR') : ''}</span></div>
+    </div>
+    ${p.hook ? `<div class="hook">${esc(p.hook)}</div>` : ''}
+    <dl>
+      <dt>Construit</dt><dd class="num">${fmt(year(b))}${b.nb_niveau ? ' · ' + b.nb_niveau + ' niv.' : ''}${b.surface_emprise_sol ? ' · emprise ' + Math.round(b.surface_emprise_sol) + ' m²' : ''}</dd>
+      <dt>Chauffage</dt><dd>${chauff ? esc(chauff) : '—'}</dd>
+      <dt>Eau chaude</dt><dd>${fmt(b.type_generateur_ecs)}</dd>
+      <dt>Murs</dt><dd>${fmt(b.mat_mur_txt || b.materiaux_structure_mur_exterieur)}${b.type_isolation_mur_exterieur ? ' · ' + esc(b.type_isolation_mur_exterieur) : ''}</dd>
+      <dt>Toiture</dt><dd>${fmt(b.mat_toit_txt)}${b.type_isolation_plancher_haut ? ' · ' + esc(b.type_isolation_plancher_haut) : ''}</dd>
+      <dt>Fenêtres</dt><dd>${[b.type_materiaux_menuiserie, b.type_vitrage].filter(Boolean).map(esc).join(' · ') || '—'}</dd>
+      <dt>Ventilation</dt><dd>${fmt(b.type_ventilation)}</dd>
+      <dt>Dernière vente</dt><dd class="num">${vente}</dd>
+    </dl>
+    ${p.out.length ? `<div><span class="label">À proposer</span><ul class="pitch">${p.out.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>` : ''}
+    ${p.warns.map(w => `<div class="warn">${esc(w)}</div>`).join('')}
+    <div class="visit" role="group" aria-label="Statut de visite"></div>`;
+  const vg = el.querySelector('.visit');
+  VISITS.forEach(([k, lab]) => {
+    const btn = document.createElement('button');
+    btn.textContent = lab; btn.setAttribute('aria-pressed', v === k);
+    btn.onclick = () => { saveVisit(b.batiment_groupe_id, k); vg.querySelectorAll('button').forEach(z => z.setAttribute('aria-pressed', z === btn)); };
+    vg.appendChild(btn);
+  });
+  return el;
+}
+
+function renderTour(){
+  const s = current; if (!s) return;
+  const sorted = [...s.list].sort((a,b) => (a.a.num ?? 9999) - (b.a.num ?? 9999));
+  const imp = $('impair'), pair = $('pair');
+  imp.innerHTML = ''; pair.innerHTML = '';
+  sorted.forEach(x => ((x.a.num ?? 1) % 2 ? imp : pair).appendChild(card(x)));
+  if (!imp.children.length) imp.innerHTML = '<p class="empty">Aucune adresse ciblée de ce côté.</p>';
+  if (!pair.children.length) pair.innerHTML = '<p class="empty">Aucune adresse ciblée de ce côté.</p>';
+  const nSales = s.list.filter(x => dvf[x.b.batiment_groupe_id]).length;
+  $('tourMeta').textContent = `${s.list.length} adresses · ${CLASSES.filter(c => s.counts[c]).map(c => c + ' ×' + s.counts[c]).join(' · ')} · ${nSales} avec une vente DVF`;
+}
+
+/* ---------- export ---------- */
+$('csv').onclick = () => {
+  if (!current) return;
+  const visits = loadVisits();
+  const head = ['Numero','Rue','Commune','DPE','kWh/m2/an','Annee','Chauffage','Murs','Toiture','Vitrage','Ventilation','Derniere vente','Prix','A proposer','Accroche','Statut','Latitude','Longitude'];
+  const lines = [head];
+  [...current.list].sort((a,b) => (a.a.num ?? 9999) - (b.a.num ?? 9999)).forEach(x => {
+    const b = x.b, sale = dvf[b.batiment_groupe_id], p = pitch(b, sale);
+    lines.push([(x.a.num ?? '') + x.a.suf, x.a.rue, commune.nom, b.classe_bilan_dpe, b.conso_5_usages_ep_m2 ?? '', year(b) ?? '',
+      [b.type_energie_chauffage, b.type_generateur_chauffage].filter(Boolean).join(' '), b.mat_mur_txt ?? '', b.mat_toit_txt ?? '',
+      b.type_vitrage ?? '', b.type_ventilation ?? '', sale ? sale.date_mutation : '', sale ? sale.valeur_fonciere : '',
+      p.out.join(' | '), p.hook, (VISITS.find(v => v[0] === (visits[b.batiment_groupe_id] || 'todo')) || [])[1],
+      x.ll ? x.ll[0].toFixed(6) : '', x.ll ? x.ll[1].toFixed(6) : '']);
+  });
+  const csv = '﻿' + lines.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
+  a.download = `tournee-${commune.nom}-${current.rue}.csv`.replace(/\s+/g, '-');
+  a.click();
+};
+$('print').onclick = () => window.print();
+document.addEventListener('click', e => { if (!e.target.closest('.field.grow')) $('suggest').hidden = true; });
+})();
+</script>
+</body>
+</html>

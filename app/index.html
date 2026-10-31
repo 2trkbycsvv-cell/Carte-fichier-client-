@@ -403,10 +403,23 @@ const TYPES = {
     peut: ["admin"],
     notif: { roles: ["admin", "vendeur", "apporteur", "pose"], vendeur: false },
   },
+  // Créés automatiquement par le tableur (pas de déclaration à la main)
+  facturation: {
+    label: "Dossier facturé", short: "Facturé", groupe: "financements", ton: "info",
+    champs: ["client", "vendeur", "montant", "commentaire"],
+    peut: [],
+    notif: { roles: ["admin"], vendeur: true },
+  },
+  classement: {
+    label: "Classement & objectifs", short: "Classement", groupe: "classement", ton: "neutral",
+    champs: ["commentaire"],
+    peut: [],
+    notif: { roles: ["admin", "vendeur", "apporteur"], vendeur: false },
+  },
 };
 
 // Types visibles dans le fil pour le rôle Pose (en plus de ce qu'il a déclaré)
-const VISIBLES_POSE = ["vente", "annulation", "financement_ok", "pose_planifiee", "pose_terminee", "sav", "info"];
+const VISIBLES_POSE = ["vente", "annulation", "financement_ok", "pose_planifiee", "pose_terminee", "sav", "info", "classement"];
 
 const ORGANISMES = ["Sofinco", "Cetelem", "Franfinance", "Domofinance", "Autre"];
 
@@ -444,8 +457,8 @@ function notifText(evt) {
 /* ================= Outils regroupés ================= */
 const T = ["admin", "vendeur", "apporteur"];
 const TOOLS = [
-  { nom: "Carte clients", desc: "Tes fichiers clients sur la carte", url: "https://carte-fichier-client.pages.dev", ext: true, roles: T, sec: "terrain", ic: "map" },
-  { nom: "Ciblage DPE", desc: "Repérer les passoires pour le porte-à-porte", url: "https://carte-fichier-client.pages.dev/ciblage-dpe.html", ext: true, roles: T, sec: "terrain", ic: "target" },
+  { nom: "Carte clients", desc: "Tes fichiers clients sur la carte", url: "carte.html", roles: T, sec: "terrain", ic: "map" },
+  { nom: "Ciblage DPE", desc: "Repérer les passoires pour le porte-à-porte", url: "ciblage-dpe.html", roles: T, sec: "terrain", ic: "target" },
   { nom: "Étude Solaire & PAC", desc: "Panneaux, PAC, batterie : visuel, synthèse et transfert de charge", url: "simulateur-solaire.html", roles: T, sec: "terrain", ic: "sun" },
   { nom: "Simulateur DPE", desc: "Étiquette, travaux et aides chez le client", url: "simulateur-dpe.html", roles: T, sec: "terrain", ic: "gauge" },
   { nom: "Bilan habitat", desc: "Bilan de conformité à remplir sur place", url: "bilan-habitat.html", roles: T, sec: "terrain", ic: "clip" },
@@ -576,12 +589,20 @@ let DEMO_CHAT = [
 let demoRole = "admin";
 function demoMe() {
   const m = { admin: DEMO_TEAM[0], vendeur: DEMO_TEAM[3], apporteur: DEMO_TEAM[5], pose: DEMO_TEAM[8] }[demoRole];
-  return { ...m, vapidPublicKey: null, equipe: DEMO_TEAM, appareils: 0 };
+  return { ...m, vapidPublicKey: null, equipe: DEMO_TEAM, appareils: 0, coach: demoRole === "admin" };
 }
+const DEMO_STATS = {
+  maj: "31/10/2026 13:30", joursRestants: 0,
+  jour: { ca: 0, ventes: 0, annulations: 0, caAnnule: 0, obj: 10846, pct: 0, panier: 0, top: null, vendeurs: [] },
+  semaine: { ca: 57515, ventes: 5, annulations: 1, caAnnule: 4900, obj: 54231, pct: 106, panier: 11503, top: { nom: "Yassine", ca: 23399 }, vendeurs: [] },
+  mois: { ca: 176687, ventes: 18, annulations: 13, caAnnule: 109654, obj: 235000, pct: 75, panier: 9816, reste: 58313, parJour: 0, top: { nom: "Tristan", ca: 45552 },
+    vendeurs: [{ nom: "Tristan", ca: 45552, obj: 50000, pct: 91 }, { nom: "Nora", ca: 44124, obj: 40000, pct: 110 }, { nom: "Yassine", ca: 41112, obj: 25000, pct: 164 }, { nom: "Nourdine", ca: 35175, obj: 50000, pct: 70 }, { nom: "Baptiste", ca: 10725, obj: 40000, pct: 27 }, { nom: "Kamel", ca: 0, obj: 30000, pct: 0 }] },
+};
 async function demoApi(path, opts) {
   await new Promise((r) => setTimeout(r, 150));
   const me = demoMe();
   if (path === "/api/moi") return me;
+  if (path === "/api/coach") return { stats: DEMO_STATS };
   if (path.startsWith("/api/evenements") && (opts.method || "GET") === "GET") {
     const vis = DEMO_FEED.filter((e) => me.role === "admin" || (me.role === "pose" ? ["vente", "annulation", "financement_ok", "pose_planifiee", "pose_terminee", "sav", "info"].includes(e.type) : e.vendeur_email === me.email || e.type === "info"));
     return { evenements: vis, suite: false };
@@ -634,6 +655,7 @@ function buildNav() {
   if (canPost()) items.push(["nouveau", "Déclarer", "plus", "plus"]);
   items.push(["chat", "Chat", "chat"]);
   if (ME.role === "admin") items.push(["equipe", "Équipe", "team"]);
+  if (ME.coach) items.push(["coach", "Coach", "trophy", "desk"]);
   items.push(["reglages", "Réglages", "gear", "desk"]);
   const dots = { equipe: "pendingDot", chat: "chatDot" };
   $("#nav").innerHTML = items.map(([id, l, ic, cls]) =>
@@ -642,8 +664,8 @@ function buildNav() {
   updateChatDot();
 }
 
-const ROUTES = { accueil: viewHome, fil: viewFeed, nouveau: viewNew, chat: viewChat, equipe: viewTeam, reglages: viewSettings };
-const TITLES = { accueil: "Accueil", fil: "Fil DCRF", nouveau: "Déclarer", chat: "Chat de l'équipe", equipe: "Équipe", reglages: "Réglages" };
+const ROUTES = { accueil: viewHome, fil: viewFeed, nouveau: viewNew, chat: viewChat, equipe: viewTeam, reglages: viewSettings, coach: viewCoach };
+const TITLES = { accueil: "Accueil", fil: "Fil DCRF", nouveau: "Déclarer", chat: "Chat de l'équipe", equipe: "Équipe", reglages: "Réglages", coach: "Coach" };
 
 function route() {
   if (!ME) return;
@@ -695,6 +717,7 @@ async function viewHome(main) {
     <section class="hero"><div class="hello"><h2>${hello}${first ? " " + esc(first) : ""}</h2><p>${esc(ROLES[ME.role])} · ${new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</p></div>
     ${ME.role === "admin" ? '<div class="stats" id="stats"></div>' : ""}</section>
     ${setupCard()}
+    ${ME.coach ? `<a class="card callout" href="#coach" style="text-decoration:none;color:inherit;display:block"><h3>🏆 Coach</h3><p class="muted small">Messages de motivation, clôtures et challenges proposés d'après les chiffres du tableur. Visible uniquement par toi.</p></a>` : ""}
     ${quick.length ? `<div class="sec"><h2>Déclarer</h2></div><div class="quick">${quick.map((k) => `<button type="button" class="qa ${TYPES[k].ton}" data-new="${k}"><i></i>${esc(TYPES[k].label)}</button>`).join("")}</div>` : ""}
     <div class="sec"><h2>Dernières nouvelles</h2><a href="#fil">Tout le fil</a></div>
     <div class="feed" id="lastFeed"><div class="empty">Chargement…</div></div>
@@ -730,7 +753,7 @@ function weekStats() {
 
 /* ---------- Fil ---------- */
 let feedFilter = "tout";
-const GROUPS = { tout: "Tout", ventes: "Ventes", financements: "Financements", poses: "Poses", messages: "Messages" };
+const GROUPS = { tout: "Tout", ventes: "Ventes", financements: "Financements", poses: "Poses", classement: "Classement", messages: "Messages" };
 
 async function loadFeed(force) {
   if (!force && FEED.length) return;
@@ -749,7 +772,7 @@ function evtHTML(e) {
     ${e.type === "info" ? `<span class="msg">${esc(e.commentaire)}</span>` : `<span class="c">${esc(e.client || "")}</span><span class="amt">${amt}</span>`}
     ${meta ? `<span class="m">${esc(meta)}</span>` : ""}
     ${e.type !== "info" && e.commentaire ? `<span class="m">${esc(e.commentaire)}</span>` : ""}
-    <div class="more" hidden><span class="small muted">Déclaré par ${esc(e.auteur_nom || e.auteur_email)} · ${dayLabel(d).toLowerCase()} à ${hhmm(d)}</span>${mine ? `<button type="button" class="btn sm danger" data-del="${e.id}">Supprimer</button>` : ""}</div>
+    <div class="more" hidden><span class="small muted">${e.source === "tableur" ? "Ajouté automatiquement depuis le tableur" : "Déclaré par " + esc(e.auteur_nom || e.auteur_email)} ·${dayLabel(d).toLowerCase()} à ${hhmm(d)}</span>${mine ? `<button type="button" class="btn sm danger" data-del="${e.id}">Supprimer</button>` : ""}</div>
   </div>`;
 }
 
@@ -800,6 +823,116 @@ function drawFeed() {
     try { const d = await api("/api/evenements?avant=" + FEED[FEED.length - 1].id); FEED = FEED.concat(d.evenements); FEED_MORE = d.suite; drawFeed(); }
     catch (e) { toast(e.message); more.disabled = false; }
   };
+}
+
+/* ---------- Coach (réservé à Tristan) ---------- */
+// Propose des messages et des challenges calculés sur les chiffres du tableur (envoyés par le script Google).
+let coachPer = "jour", coachSeed = 0;
+const pick = (arr, k = 0) => arr.length ? arr[(coachSeed + k) % arr.length] : null;
+const nbr = (n) => String(n).replace(".", ",");
+function nextFriday() { const d = new Date(); d.setDate(d.getDate() + ((5 - d.getDay() + 7) % 7 || 7)); return d.toISOString().slice(0, 10); }
+function endOfMonth() { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0, 12).toISOString().slice(0, 10); }
+
+function coachMessages(S, p) {
+  const s = S[p], m = S.mois, top = s.top, out = [];
+  const reste = m.reste, j = S.joursRestants;
+  // Motivation
+  const motiv = [];
+  if (reste > 0 && j > 0) motiv.push(`Objectif du mois : il reste ${eur(reste)} HT à aller chercher en ${j} jour${j > 1 ? "s" : ""} ouvré${j > 1 ? "s" : ""}, soit ${eur(m.parJour)} par jour. Chaque RDV compte, on y va ! 💪`);
+  if (reste <= 0) motiv.push(`Objectif du mois déjà atteint (${m.pct} %) 🔥 Maintenant on vise le record : chaque vente en plus, c'est du bonus pour toute l'équipe.`);
+  if (m.top) motiv.push(`${m.top.nom} mène le mois avec ${eur(m.top.ca)} HT. Qui va venir le chercher aujourd'hui ? 🏁`);
+  if (m.annulations) motiv.push(`${m.annulations} annulation${m.annulations > 1 ? "s" : ""} ce mois (${eur(m.caAnnule)}). Aujourd'hui, chaque vente sort verrouillée : dossier complet, sections OBAT, financement, appel qualité ✅`);
+  motiv.push("Bonjour l'équipe ☀️ L'action mène à l'action : on sort les fichiers, on rappelle, on va chercher la vente. Bonne journée à tous 💪");
+  motiv.push("Nouvelle journée, nouvelles opportunités. Un RDV bien préparé, c'est déjà la moitié de la vente. On lâche rien 🔥");
+  out.push({ cat: "Motivation", ton: "neutral", items: [pick(motiv), pick(motiv, 1), pick(motiv, 2)].filter((x, i, a) => x && a.indexOf(x) === i) });
+  // Clôture
+  const clo = [];
+  if (p === "jour") {
+    clo.push(s.ventes
+      ? `Fin de journée : ${s.ventes} vente${s.ventes > 1 ? "s" : ""} pour ${eur(s.ca)} HT${top ? `, bravo ${top.nom} 👏` : ""}. Reposez-vous bien, demain on garde le rythme 💪`
+      : "Journée sans signature, ça arrive. Demain on repart plus fort : chaque RDV est une nouvelle chance. Bonne soirée à tous 🙏");
+    clo.push(`Merci à tous pour la journée 🙏 ${s.ventes ? `${eur(s.ca)} HT signés aujourd'hui.` : ""} Pensez à faire votre rapport du soir et à compléter vos dossiers sous OBAT ✅`);
+  } else if (p === "semaine") {
+    const ok = s.pct >= 100;
+    clo.push(`Semaine bouclée : ${eur(s.ca)} HT, ${s.ventes} vente${s.ventes > 1 ? "s" : ""}, ${s.pct} % de l'objectif. ${ok ? "Objectif dépassé, bravo à tous 🔥" : `Il a manqué ${eur(Math.max(0, s.obj - s.ca))} : lundi on attaque pour combler l'écart.`}${top ? ` Meilleur vendeur : ${top.nom} (${eur(top.ca)}).` : ""} Bon week-end 🙌`);
+    if (s.annulations) clo.push(`Bilan de la semaine : ${eur(s.ca)} HT signés, mais ${s.annulations} annulation${s.annulations > 1 ? "s" : ""} (${eur(s.caAnnule)}). La semaine prochaine, on verrouille chaque dossier avant de repartir. Bon week-end à tous 💪`);
+    else clo.push(`Belle semaine sans annulation 👏 ${eur(s.ca)} HT et ${s.ventes} vente${s.ventes > 1 ? "s" : ""}. Merci pour l'investissement, on remet ça lundi 🚀`);
+  } else {
+    const pod = s.vendeurs.filter((v) => v.ca > 0).slice(0, 3).map((v, i) => `${["🥇", "🥈", "🥉"][i]} ${v.nom} ${eur(v.ca)}`).join(" · ");
+    const ok = s.pct >= 100;
+    clo.push(`Clôture du mois : ${eur(s.ca)} HT, ${s.ventes} ventes, ${s.pct} % de l'objectif. ${ok ? "Objectif atteint, bravo à toute l'équipe 🔥" : "Ce mois a été compliqué : chacun doit se sentir concerné, et on repart ensemble plus solides."}${pod ? ` Podium : ${pod}.` : ""}`);
+    clo.push(`Merci à tous pour ce mois 🙏 ${s.annulations ? `${s.annulations} annulations nous ont coûté ${eur(s.caAnnule)} : le mois prochain, une seule règle, chaque vente est verrouillée avant de repartir.` : "Zéro annulation, c'est la preuve que les dossiers carrés paient."} Nouveau mois, compteurs à zéro : on attaque 🚀`);
+  }
+  out.push({ cat: p === "jour" ? "Clôture de la journée" : p === "semaine" ? "Clôture de la semaine" : "Clôture du mois", ton: "ok", items: clo });
+  return out;
+}
+
+function coachChallenges(S) {
+  const m = S.mois, w = S.semaine, list = [];
+  const panier = m.panier || w.panier || 5000;
+  const tauxAnn = m.ca + m.caAnnule ? m.caAnnule / (m.ca + m.caAnnule) : 0;
+  if (m.annulations >= 2 || tauxAnn > 0.15)
+    list.push({ pourquoi: `${m.annulations} annulations ce mois (${Math.round(tauxAnn * 100)} % du signé)`, titre: "Zéro annulation 🔒", texte: "Chaque vente signée cette semaine et toujours valide vendredi soir (dossier complet, appel qualité OK) = 1 point. Le meilleur score choisit le resto.", fin: nextFriday() });
+  if (m.reste > 0) {
+    const n = Math.max(1, Math.ceil(m.reste / panier));
+    list.push({ pourquoi: `Il manque ${eur(m.reste)} pour l'objectif du mois`, titre: `Course aux ${n} ventes 🏁`, texte: `Il nous manque environ ${n} vente${n > 1 ? "s" : ""} pour l'objectif du mois. Chaque vente signée d'ici la fin du mois = 1 ticket pour le tirage au sort d'un chèque cadeau.`, fin: endOfMonth() });
+  }
+  list.push({ pourquoi: `Panier moyen actuel : ${eur(panier)}`, titre: "Panier XXL 💎", texte: `La plus grosse vente de la semaine au-dessus de ${eur(Math.round(panier * 1.3 / 100) * 100)} HT remporte le défi.`, fin: nextFriday() });
+  const bas = (m.vendeurs || []).filter((v) => v.obj && v.pct < 50);
+  if (bas.length >= 2)
+    list.push({ pourquoi: `${bas.length} vendeurs sous 50 % de leur objectif`, titre: "Défi binôme 🤝", texte: "Cette semaine, chaque vente faite en binôme compte double. Le binôme qui signe le plus de CA gagne le défi.", fin: nextFriday() });
+  list.push({ pourquoi: "Demande de la direction : plus d'avis Google", titre: "10 avis Google ⭐", texte: "Un avis Google par maison visitée. L'équipe doit atteindre 10 avis cette semaine, celui qui en ramène le plus est récompensé.", fin: nextFriday() });
+  if (w.ventes === 0 || (w.pct || 0) < 50)
+    list.push({ pourquoi: `Semaine à ${w.pct || 0} % de l'objectif`, titre: "Première vente de la journée ⚡", texte: "Le premier qui annonce une vente signée chaque jour dans le groupe marque 1 point. Celui qui a le plus de points vendredi gagne.", fin: nextFriday() });
+  return list;
+}
+
+async function viewCoach(main) {
+  if (!ME.coach) { location.hash = "accueil"; return; }
+  main.innerHTML = `<div class="stack">${demoBanner()}<div class="hello"><h2>Coach</h2><p>Visible uniquement par toi. Choisis, modifie si besoin, puis publie.</p></div><div id="coachBox"><div class="empty">Chargement des chiffres…</div></div></div>`;
+  bindDemo(main);
+  let S = null;
+  try { S = (await api("/api/coach")).stats; } catch (e) { $("#coachBox").innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  if (!S) { $("#coachBox").innerHTML = '<div class="card callout warn"><h3>Pas encore de chiffres</h3><p class="muted small">Les chiffres arrivent du tableur dès que le script « Fil DCRF » est installé (toutes les 5 minutes).</p></div>'; return; }
+  const draw = () => {
+    const s = S[coachPer];
+    const box = $("#coachBox");
+    const msgs = coachMessages(S, coachPer), defis = coachChallenges(S);
+    box.innerHTML = `<div class="stack">
+      <div class="chips" role="group" aria-label="Période">${[["jour", "Aujourd'hui"], ["semaine", "Semaine"], ["mois", "Mois"]].map(([k, l]) => `<button type="button" class="chip" data-p="${k}" aria-pressed="${k === coachPer}">${l}</button>`).join("")}</div>
+      <div class="stats"><div class="stat"><b>${eur(s.ca) || "0 €"}</b><span>CA HT · ${s.pct} % obj.</span></div><div class="stat"><b>${s.ventes}</b><span>vente${s.ventes > 1 ? "s" : ""}${s.top ? " · top " + esc(s.top.nom) : ""}</span></div><div class="stat"><b>${s.annulations}</b><span>annulation${s.annulations > 1 ? "s" : ""}</span></div></div>
+      <p class="small muted">Chiffres du tableur mis à jour le ${esc(S.maj)}.</p>
+      ${msgs.map((g) => `<div class="sec"><h2>${esc(g.cat)}</h2></div>${g.items.map((t, i) => `<div class="card coach-item"><div class="f"><textarea aria-label="${esc(g.cat)} ${i + 1}">${esc(t)}</textarea></div>
+        <div class="row" style="margin-top:10px"><button type="button" class="btn sm primary" data-pub="fil">Publier dans le fil</button><button type="button" class="btn sm" data-pub="chat">Envoyer dans le chat</button><button type="button" class="btn sm" data-pub="copie">Copier pour WhatsApp</button></div></div>`).join("")}`).join("")}
+      <div class="sec"><h2>Challenges proposés</h2></div>
+      ${defis.map((d) => `<div class="card coach-defi"><p class="small muted" style="margin-bottom:6px">Pourquoi : ${esc(d.pourquoi)}</p>
+        <div class="f"><label>Titre</label><input data-k="titre" value="${esc(d.titre)}"></div>
+        <div class="f" style="margin-top:8px"><label>Règle</label><textarea data-k="texte">${esc(d.texte)}</textarea></div>
+        <div class="f" style="margin-top:8px"><label>Fin du défi</label><input data-k="fin" type="date" value="${esc(d.fin)}"></div>
+        <div class="row" style="margin-top:10px"><button type="button" class="btn sm primary" data-defi="chat">Lancer dans le chat</button><button type="button" class="btn sm" data-defi="fil">Annoncer dans le fil</button><button type="button" class="btn sm" data-defi="copie">Copier</button></div></div>`).join("")}
+      <button type="button" class="btn block" id="coachMore">Autres propositions</button>
+    </div>`;
+    box.querySelectorAll("[data-p]").forEach((b) => (b.onclick = () => { coachPer = b.dataset.p; draw(); }));
+    $("#coachMore").onclick = () => { coachSeed++; draw(); };
+    const go = async (btn, fn, ok) => { btn.disabled = true; try { await fn(); toast(ok); } catch (e) { toast(e.message); } btn.disabled = false; };
+    box.querySelectorAll(".coach-item").forEach((card) => card.querySelectorAll("[data-pub]").forEach((b) => (b.onclick = () => {
+      const txt = card.querySelector("textarea").value.trim();
+      if (!txt) return toast("Le message est vide.");
+      if (b.dataset.pub === "copie") return go(b, () => navigator.clipboard.writeText(txt), "Copié");
+      if (b.dataset.pub === "fil") return go(b, () => api("/api/evenements", { method: "POST", body: { type: "info", commentaire: txt } }), "Publié dans le fil, l'équipe est prévenue");
+      return go(b, () => api("/api/chat", { method: "POST", body: { texte: txt } }), "Envoyé dans le chat");
+    })));
+    box.querySelectorAll(".coach-defi").forEach((card) => card.querySelectorAll("[data-defi]").forEach((b) => (b.onclick = () => {
+      const v = (k) => card.querySelector(`[data-k="${k}"]`).value.trim();
+      const titre = v("titre"), texte = v("texte"), fin = v("fin");
+      if (!titre) return toast("Indique un titre.");
+      const annonce = `🏆 Challenge : ${titre}\n${texte}${fin ? `\nJusqu'au ${fin.split("-").reverse().join("/")}.` : ""}`;
+      if (b.dataset.defi === "copie") return go(b, () => navigator.clipboard.writeText(annonce), "Copié");
+      if (b.dataset.defi === "fil") return go(b, () => api("/api/evenements", { method: "POST", body: { type: "info", commentaire: annonce } }), "Challenge annoncé dans le fil");
+      return go(b, () => api("/api/chat", { method: "POST", body: { defi: { titre, texte, fin } } }), "Défi lancé dans le chat");
+    })));
+  };
+  draw();
 }
 
 /* ---------- Déclarer ---------- */
