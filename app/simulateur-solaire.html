@@ -343,7 +343,7 @@ body.client .v{display:none!important}
       <label class="f">Batterie 20 kWh (€ TTC)<input id="pb20" type="number" step="100" value="13900"></label>
       <label class="f">Plug and play 1 600 W (€ TTC)<input id="pz1600" type="number" step="50" value="1500"></label>
     </div>
-    <p class="note">Prix : catalogue tarifs 2024-2025 (HT + TVA 2026) et packs PV + PAC en TTC catalogue. Batteries et plug and play absents du catalogue : prix marché 2026, à remplacer par vos tarifs. TVA 2026 : 5,5 % seulement si les modules respectent le bilan carbone et qu'un système pilote au moins deux usages ; une batterie sur le même devis fait passer l'ensemble à 20 %. Rachat EDF OA 1,1 c€/kWh HT depuis le 5 juin 2026, prime à l'autoconsommation supprimée. MaPrimeRénov' PAC air-eau 5 000 / 4 000 / 3 000 € ; ballon thermodynamique hors MaPrimeRénov' depuis le 1er septembre 2026 (CEE ×7 ou ×4). Projet de loi de finances 2027 : forfait PAC menacé.</p>
+    <p class="note">Prix : kit 3 kWc et ballons thermodynamiques repris de la bibliothèque OBAT DCRF (novembre 2026). Autres kits et PAC : catalogue tarifs 2024-2025 (HT + TVA 2026) et packs PV + PAC en TTC catalogue. Batteries et plug and play absents du catalogue : prix marché 2026, à remplacer par vos tarifs. TVA 2026 : 5,5 % seulement si les modules respectent le bilan carbone et qu'un système pilote au moins deux usages ; une batterie sur le même devis fait passer l'ensemble à 20 %. Rachat EDF OA 1,1 c€/kWh HT depuis le 5 juin 2026, prime à l'autoconsommation supprimée. MaPrimeRénov' PAC air-eau 5 000 / 4 000 / 3 000 € ; ballon thermodynamique hors MaPrimeRénov' depuis le 1er septembre 2026 (CEE ×7 ou ×4). Projet de loi de finances 2027 : forfait PAC menacé.</p>
   </div>
 </section>
 
@@ -441,7 +441,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 /* ================= CATALOGUE ================= */
 const CAT={
   pv:{
-    3:{kwc:3,n:6,ht:11354.55,w:1.039,h:1.756,name:"Kit 3 kWc",ref:"OSILY Série 4 All Black 500 Wc · micro-onduleurs APsystems DS3"},
+    3:{kwc:3,n:6,ht:10590.00,w:1.134,h:2.094,name:"Kit 3 kWc",ref:"6 × DMEGC 500 Wc Full Black bifacial (bibliothèque OBAT DCRF, 11/2026)"},
     6:{kwc:6,n:12,ht:16241.67,w:1.134,h:2.094,name:"Kit 6 kWc",ref:"OSILY Série 5 Full Black 500 Wc · micro-onduleurs APsystems DS3"},
     9:{kwc:9,n:18,ht:24575.00,w:1.134,h:2.094,name:"Kit 9 kWc",ref:"OSILY Série 5 Full Black 500 Wc · micro-onduleurs APsystems DS3"},
     12:{kwc:12,n:24,ht:32525.00,w:1.134,h:2.094,name:"Kit 12 kWc",ref:"OSILY Série 5 Full Black 500 Wc · micro-onduleurs APsystems DS3 · prix extrapolé",big:true},
@@ -459,7 +459,7 @@ const CAT={
     C32:{kw:32,ph:"tri",ht:30000,scop:3.80,etas:117,p7:30.34,duoL:190,ref:"2 × Atlantic Alfea Excellia DUO A.I TRI 16 en cascade (montage à valider avec le fournisseur)",ext:true},
     C36:{kw:36,ph:"tri",ht:32000,scop:4.51,etas:140,p7:36,duoL:180,ref:"2 × Daikin Altherma 3 H HT 18 kW en cascade (montage à valider avec le fournisseur)",ext:true}
   },
-  bal:{150:{ht:7200,cop:2.94,ref:"Atlantic Calypso connecté 150 L"},200:{ht:7500,cop:3.11,ref:"Atlantic Calypso connecté 200 L"},250:{ht:7800,cop:3.11,ref:"Atlantic Calypso connecté 250 L"}},
+  bal:{150:{ht:6320,cop:2.94,ref:"ALTHEC Concerto 150 L (bibliothèque OBAT DCRF)"},200:{ht:5900,cop:3.11,ref:"ALTHEC Concerto 200 L (bibliothèque OBAT DCRF)"},250:{ht:6320,cop:3.13,ref:"ALTHEC Concerto 250 L (bibliothèque OBAT DCRF)"}},
   packs:{"3-11":31400,"3-14":33400,"3-16":36400,"6-11":38400,"6-14":41400,"6-16":43800}
 };
 const MARKET={

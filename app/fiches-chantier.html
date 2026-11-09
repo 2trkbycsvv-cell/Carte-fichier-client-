@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><a href="../" onclick="history.back();return false" class="dcrf-back" style="display:flex;align-items:center;gap:6px;padding:10px 16px;font:600 15px system-ui,-apple-system,sans-serif;color:#3c8219;background:#ffffff;border-bottom:1px solid #e2e9e4;text-decoration:none;margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px)))">&#8249;&nbsp;Appli DCRF</a>
+<!doctype html><html><head><meta charset="utf-8"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><a href="/" class="dcrf-back" style="display:flex;align-items:center;gap:6px;padding:10px 16px;font:600 15px system-ui,-apple-system,sans-serif;color:#3c8219;background:#ffffff;border-bottom:1px solid #e2e9e4;text-decoration:none;margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px)))">&#8249;&nbsp;Appli DCRF</a>
 <title>Fiches Chantier DCRF</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap">
@@ -289,6 +289,8 @@ const FICHES=[
 ];
 const fiche=()=>FICHES.find(f=>f.id===D._fiche);
 
+const TYPES_VENTE=["Relance","Création Réf","Recommandation","TAP / en direct","Création call","Ancien client","Appel entrant","Parrainage","GMS","Foire","Perso","Séance Phone"];
+const DOCS_DOSSIER=["BDC / Devis","Attestation TVA","Conditions générales de vente","CNI Mme","CNI Mr","Justificatif domicile < 3 mois","BDS Mme","BDS Mr","Passeport PV","Photos de chantier sur OBAT","Feuille de chantier","Financement","Avis d'imposition","RIB"];
 const COMMON=[
  {title:"Commande",hint:"Reprends les infos du devis signé.",q:[
   txt("numCmd","N° de commande",{ph:"D2026…"}),{id:"dateCmd",t:"Date de la commande",type:"date"},
@@ -306,6 +308,17 @@ const COMMON=[
   txt("client","Nom du client",{ph:"M. / Mme …"}),txt("adresse","Adresse",{ph:"N°, rue"}),txt("cpville","Code postal et ville",{ph:"36110 Brion"}),
   txt("tel","Téléphone",{mode:"tel"}),txt("mail","Adresse mail",{mode:"email"}),
   txt("travaux","Travaux à prévoir",{ph:"Ex. hydrofuge toiture incolore + VPI"}),{id:"note",t:"Note particulière",type:"area",ph:"Accès, animaux, horaires…"}]},
+ {title:"Validation commerciale",hint:"Page de garde du dossier : elle sort en 1re page du PDF.",q:[
+  txt("secteur","Secteur de vente",{ph:"Ex. Angers"}),txt("vendeur","Vendeur",{ph:"Prénom Nom"}),
+  num("commissionDE","Pourcentage commission si DE","%"),
+  chips("typeVente","Type de vente",TYPES_VENTE,{multi:true,other:false}),
+  txt("sousTraitance","Sous-traitance",{ph:"Société, si sous-traité"}),
+  chips("cheques","Chèques",["1 chèque","2 chèques","3 chèques"],{other:false,if:d=>d.paiement==="Comptant"}),
+  chips("finMode","Dossier de financement",["Digital","Papier"],{other:false,if:d=>d.paiement==="Financement"}),
+  chips("rac","Comptant + RAC",["Oui","Non"],{other:false}),
+  chips("docs","Documents dans le dossier",DOCS_DOSSIER,{multi:true,other:false}),
+  txt("responsable","Responsable d'agence (passage technique)",{ph:"Prénom Nom"}),
+  {id:"dateValid",t:"Date de validation",type:"date"}]},
 ];
 const PICK={title:"Type de fiche",pick:true,q:[]}, PHOTOS={title:"Photos",photos:true,q:[]}, RECAP={title:"Récapitulatif",recap:true,q:[]};
 function steps(){const f=fiche();return f?[PICK,...COMMON,...f.steps,PHOTOS,RECAP]:[PICK]}
@@ -369,9 +382,9 @@ function field(q){
     for(let r=0;r<n;r++)q.cols.forEach((c,ci)=>h+=`<input aria-label="${esc(c)} ligne ${r+1}" data-grid="${q.id}" data-r="${r}" data-c="${ci}" value="${esc(rows[r]?.[ci]||"")}">`);
     return h+`</div>${n<q.rows?`<span class="hint" style="font-size:.8rem">Une nouvelle ligne apparaît quand tu remplis la dernière.</span>`:""}`;
   }
-  const isOther=v&&!q.o.includes(v);
+  const isOther=!q.multi&&v&&!q.o.includes(v);
   let h=`<span class="qt" id="l_${q.id}">${q.t}</span><div class="chips" role="group" aria-labelledby="l_${q.id}">`;
-  q.o.forEach(o=>h+=`<button type="button" class="chip" data-chip="${q.id}" data-v="${esc(o)}" aria-pressed="${v===o}">${esc(o)}</button>`);
+  q.o.forEach(o=>h+=`<button type="button" class="chip" data-chip="${q.id}" data-v="${esc(o)}" aria-pressed="${q.multi?(Array.isArray(v)&&v.includes(o)):v===o}">${esc(o)}</button>`);
   if(q.other)h+=`<button type="button" class="chip" data-chip="${q.id}" data-other="1" aria-pressed="${!!(isOther||D["_o_"+q.id])}">Autre</button>`;
   h+=`</div>`;
   if(q.other&&(isOther||D["_o_"+q.id]))h+=`<input class="other" id="f_${q.id}" data-id="${q.id}" value="${esc(isOther?v:"")}" placeholder="Préciser">`;
@@ -385,6 +398,8 @@ document.addEventListener("click",e=>{
   if(dp){PH.splice(+dp.dataset.delph,1);render();return}
   const c=e.target.closest("[data-chip]");if(!c)return;
   const id=c.dataset.chip;
+  const qm=allQ().find(q=>q.id===id);
+  if(qm&&qm.multi){const a=Array.isArray(D[id])?[...D[id]]:[];const i=a.indexOf(c.dataset.v);i<0?a.push(c.dataset.v):a.splice(i,1);D[id]=a;save();render();return}
   if(c.dataset.other){D["_o_"+id]=1;const q=allQ().find(q=>q.id===id);if(q&&q.o.includes(D[id]))D[id]=""}
   else{D[id]=c.dataset.v;delete D["_o_"+id]}
   save();render();
@@ -425,6 +440,7 @@ const numv=s=>{const m=String(s||"").replace(/\s/g,"").replace(",",".").match(/[
 function show(q){
   if(q.if&&!q.if(D))return "-";
   const v=D[q.id];
+  if(q.multi)return Array.isArray(v)?v.join(", "):"";
   if(q.type==="grid")return (Array.isArray(v)?v:[]).filter(r=>r&&r.some(Boolean)).map(r=>q.cols.map((c,i)=>r[i]||"-").join(" / ")).join(" ; ");
   if(v===undefined||v==="")return "";
   if(q.type==="date")return fd(v);
@@ -449,6 +465,7 @@ function makePDF(){
   const out=document.getElementById("out");
   if(!window.jspdf){out.innerHTML=`<p class="msg err">Le générateur PDF ne s'est pas chargé. Vérifie la connexion puis recharge la page.</p>`;return}
   const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"}), f=fiche();
+  pageGarde(doc); doc.addPage();
   ficheHeader(doc,f); ficheBody(doc,f);
   doc.addPage(); f.croquis==="toit"?croquisToit(doc):f.croquis==="facade"?croquisFacade(doc):croquisBlanc(doc);
   PH.forEach((p,i)=>{doc.addPage();T(doc,105,14,`Photo ${i+1} / ${PH.length} - ${D.client||""}`,{s:10,c:1});
@@ -474,6 +491,46 @@ function makePDF(){
   })();
 }
 
+
+// ---------- Page de garde « Validation commerciale pour suivi technique » ----------
+function pageGarde(doc){
+  const L=20,R=190;
+  doc.addImage(LOGO,"JPEG",80,10,50,22.6);
+  doc.setFont("helvetica","bold");doc.setFontSize(16);doc.setTextColor(0);
+  doc.text("Validation commerciale pour suivi technique",105,46,{align:"center"});
+  let y=56;const row=(lab,val,x2)=>{T(doc,L,y,lab,{b:false,s:10.5});const w=doc.getTextWidth(lab);doc.setLineDashPattern([.4,.8],0);doc.setLineWidth(.2);doc.line(L+w+2,y+.8,x2||R,y+.8);doc.setLineDashPattern([],0);V(doc,L+w+3,y,val||"",{s:10.5,w:(x2||R)-L-w-4});y+=8};
+  row("Secteur de vente :",D.secteur);row("Date de vente :",fd(D.dateCmd));row("Vendeur :",D.vendeur);
+  row("Pourcentage commission si DE :",D.commissionDE?D.commissionDE+" %":"");row("Produits :",D.travaux);
+  // Type de vente
+  const tv=Array.isArray(D.typeVente)?D.typeVente:[];
+  T(doc,L,y,"Type de vente :",{b:false,s:10.5});
+  let x=L+28,yy=y;TYPES_VENTE.forEach(o=>{doc.setFontSize(9.5);const w=doc.getTextWidth(o)+9;if(x+w>R){x=L+28;yy+=6.5}box(doc,x,yy,tv.includes(o));T(doc,x+4.5,yy,o,{b:false,s:9.5});x+=w});
+  y=yy+8;row("Sous-traitance :",D.sousTraitance);
+  // Client
+  y+=3;T(doc,L,y,"•  Coordonnées client :",{s:11});y+=8;
+  row("Nom + Prénom :",D.client);row("Ville :",D.cpville);
+  // Paiement
+  y+=3;T(doc,L,y,"•  Mode de paiement :",{s:11});y+=8;
+  const comp=D.paiement==="Comptant",fin=D.paiement==="Financement",org=String(D.organisme||"").toLowerCase(),dig=D.finMode==="Digital",pap=D.finMode==="Papier";
+  box(doc,L+4,y,comp);T(doc,L+9,y,"Comptant",{b:false,s:10});
+  T(doc,L+32,y,"Chèques :",{b:false,s:9.5});["1 chèque","2 chèques","3 chèques"].forEach((o,i)=>{box(doc,L+50+i*22,y,comp&&D.cheques===o);T(doc,L+54.5+i*22,y,o,{b:false,s:9})});
+  T(doc,L+118,y,"Acompte :",{b:false,s:9.5});V(doc,L+134,y,comp&&D.acompte?D.acompte+" €":"",{s:9.5});y+=8;
+  box(doc,L+4,y,fin);T(doc,L+9,y,"Financement :",{b:false,s:10});
+  [["Sofinco digital",fin&&org.includes("sofinco")&&dig],["Sofinco papier",fin&&org.includes("sofinco")&&pap],["FranFinance digital",fin&&org.includes("franfinance")&&dig],["FranFinance papier",fin&&org.includes("franfinance")&&pap]]
+    .forEach(([o,on],i)=>{const cx=L+38+(i%2)*55,cy=y+(i>1?6.5:0);box(doc,cx,cy,on);T(doc,cx+4.5,cy,o,{b:false,s:9.5})});
+  if(fin&&D.organisme&&!/sofinco|franfinance/i.test(D.organisme))V(doc,L+150,y,"("+D.organisme+")",{s:9});
+  y+=14;box(doc,L+4,y,D.rac==="Oui");T(doc,L+9,y,"RAC : Comptant + RAC",{b:false,s:10});
+  // Documents
+  y+=11;T(doc,L,y,"•  Documents :",{s:11});y+=8;
+  const dc=Array.isArray(D.docs)?D.docs:[],half=Math.ceil(DOCS_DOSSIER.length/2);
+  DOCS_DOSSIER.forEach((o,i)=>{const cx=i<half?L+6:L+92,cy=y+(i%half)*6.5;box(doc,cx,cy,dc.includes(o));T(doc,cx+4.5,cy,o,{b:false,s:9.5})});
+  y+=half*6.5+6;
+  // Signature
+  T(doc,105,y,"Nom + Date + Signature du responsable d'agence pour passage technique",{s:10,c:1});y+=4;
+  doc.setLineWidth(.3);const cw=(R-L)/3;doc.rect(L,y,R-L,24);doc.line(L,y+7,R,y+7);doc.line(L+cw,y,L+cw,y+24);doc.line(L+2*cw,y,L+2*cw,y+24);
+  ["Nom responsable","Date","Signature"].forEach((t,i)=>T(doc,L+cw*i+cw/2,y+5,t,{b:false,s:9.5,c:1}));
+  V(doc,L+cw/2,y+16,D.responsable||"",{s:10,c:1,w:cw-4});V(doc,L+cw*1.5,y+16,fd(D.dateValid),{s:10,c:1});
+}
 let Y=0,TOP=0;
 function ficheHeader(doc,f){
   const W=210,L=15,R=195,M=105;

@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><a href="../" onclick="history.back();return false" class="dcrf-back" style="display:flex;align-items:center;gap:6px;padding:10px 16px;font:600 15px system-ui,-apple-system,sans-serif;color:#3c8219;background:#ffffff;border-bottom:1px solid #e2e9e4;text-decoration:none;margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px)))">&#8249;&nbsp;Appli DCRF</a>
+<!doctype html><html><head><meta charset="utf-8"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#ffffff"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><a href="/" class="dcrf-back" style="display:flex;align-items:center;gap:6px;padding:10px 16px;font:600 15px system-ui,-apple-system,sans-serif;color:#3c8219;background:#ffffff;border-bottom:1px solid #e2e9e4;text-decoration:none;margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px)))">&#8249;&nbsp;Appli DCRF</a>
 <title>Simulateur DPE terrain</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -394,18 +394,19 @@ function candidateWorks(s, base){
   const g = base.g, u = base.u, W = [];
   const H = HEAT[s.chauffage];
   if (g.roofArea > 0 && u.Ut > .25) {
-    const r = {perdus:[22,35], amenages:[55,90], terrasse:[120,180]}[s.toitType];
+    // Prix DCRF : bibliothèque OBAT (HT) × TVA 5,5 % à 10 %, mis à jour le 09/11/2026
+    const r = {perdus:[66*1.055,66*1.1], amenages:[55,90], terrasse:[120,180]}[s.toitType];
     W.push({id:'toit', iso:true, label: s.toitType === 'perdus' ? 'Isolation des combles perdus (R ≥ 7)' : s.toitType === 'amenages' ? 'Isolation des rampants (R ≥ 6)' : 'Isolation de la toiture-terrasse (R ≥ 4,5)',
       apply: x => { x.toitIso = 'forte'; }, cost: [g.roofArea*r[0], g.roofArea*r[1]]});
   }
   if (u.Um > .5 && g.wallNet > 0) {
     W.push({id:'murs', iso:true, label:'Isolation des murs par l\'extérieur (ITE, R ≥ 3,7)',
-      apply: x => { x.murIso = 'ite'; }, cost: [g.wallNet*150, g.wallNet*220],
+      apply: x => { x.murIso = 'ite'; }, cost: [g.wallNet*310*1.055, g.wallNet*330*1.1],
       note: 'Alternative moins chère : isolation par l\'intérieur, environ 60 à 90 €/m², mais perte de surface.'});
   }
   if (g.floorArea > 0 && u.b > 0 && u.Up > .5 && s.plancherType !== 'terre_plein') {
     W.push({id:'plancher', iso:true, label:'Isolation du plancher bas (sous-sol ou vide sanitaire)',
-      apply: x => { x.plancherIso = 'oui'; }, cost: [g.floorArea*30, g.floorArea*60]});
+      apply: x => { x.plancherIso = 'oui'; }, cost: [g.floorArea*120*1.055, g.floorArea*120*1.1]});
   }
   if (u.Uw >= 2.5) {
     const nw = Math.max(2, Math.round(g.winArea / 1.7));
@@ -413,17 +414,17 @@ function candidateWorks(s, base){
       apply: x => { x.vitrage = 'double_recent'; if (x.menuiserie === 'alu') x.menuiserie = 'pvc'; }, cost: [nw*650, nw*1100]});
   }
   if (VENTIL[s.ventil][1] >= .75) {
-    W.push({id:'vmc', label:'VMC simple flux hygroréglable', apply: x => { x.ventil = 'vmc_hygro'; }, cost: [1800, 3500],
+    W.push({id:'vmc', label:'VMC simple flux hygroréglable', apply: x => { x.ventil = 'vmc_hygro'; }, cost: [3000*1.055, 3500*1.1],
       note: 'Indispensable dès qu\'on isole et change les fenêtres, pour éviter l\'humidité.'});
   }
   const fossilBoiler = H[3] && ['fioul','gaz','gpl'].includes(H[1]) && !['gaz_cond','gaz_coll'].includes(s.chauffage);
   if (fossilBoiler || (s.chauffage === 'gaz_cond' && false)) {
     const fioul = H[1] === 'fioul';
     W.push({id:'pac', heat:true, label:'Pompe à chaleur air/eau' + (fioul ? ' + dépose de la cuve à fioul' : ''),
-      apply: x => { x.chauffage = 'pac_air_eau'; }, cost: fioul ? [12000, 19000] : [11000, 17000],
+      apply: x => { x.chauffage = 'pac_air_eau'; }, cost: [15661*1.055, 15661*1.1],
       mpr: c => MPR_PAC[c] + (fioul ? MPR_CUVE[c] : 0)});
   } else if (['elec_conv','elec_ray','elec_sol'].includes(s.chauffage)) {
-    W.push({id:'pac', heat:true, label:'Pompe à chaleur air/air (multisplit)', apply: x => { x.chauffage = 'pac_air_air'; }, cost: [6000, 12000],
+    W.push({id:'pac', heat:true, label:'Pompe à chaleur air/air (multisplit)', apply: x => { x.chauffage = 'pac_air_air'; }, cost: [7936*1.055, 11190*1.1],
       note: 'Pas d\'aide MaPrimeRénov\' pour l\'air/air, prime CEE possible.'});
   } else if (s.chauffage === 'bois_old') {
     W.push({id:'pac', heat:true, label:'Poêle à granulés récent', apply: x => { x.chauffage = 'gran_poele'; }, cost: [4000, 7000]});
@@ -433,7 +434,7 @@ function candidateWorks(s, base){
   }
   const ecsElec = base.ecsMode === 'cumulus' || (base.ecsMode === 'chauffage' && ['fioul','gaz','gpl'].includes(H[1]) && !W.some(w => w.id === 'pac'));
   if (ecsElec) {
-    W.push({id:'ecs', label:'Chauffe-eau thermodynamique', apply: x => { x.ecs = 'thermo'; }, cost: [2500, 4000]});
+    W.push({id:'ecs', label:'Chauffe-eau thermodynamique', apply: x => { x.ecs = 'thermo'; }, cost: [5900*1.055, 6320*1.1]});
   }
   return W.map(w => {
     const x = JSON.parse(JSON.stringify(s)); w.apply(x);
