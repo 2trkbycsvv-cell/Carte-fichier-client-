@@ -289,8 +289,10 @@ const FICHES=[
 ];
 const fiche=()=>FICHES.find(f=>f.id===D._fiche);
 
-const TYPES_VENTE=["Relance","Création Réf","Recommandation","TAP / en direct","Création call","Ancien client","Appel entrant","Parrainage","GMS","Foire","Perso","Séance Phone"];
-const DOCS_DOSSIER=["BDC / Devis","Attestation TVA","Conditions générales de vente","CNI Mme","CNI Mr","Justificatif domicile < 3 mois","BDS Mme","BDS Mr","Passeport PV","Photos de chantier sur OBAT","Feuille de chantier","Financement","Avis d'imposition","RIB"];
+const TYPES_VENTE=["Relance","Création Réf","Recommandation","TAP / en direct","Création LEAD","Ancien client","Appel entrant du client","Parrainage","GMS","Foire","Perso","Commando"];
+const DOCS_GAUCHE=["Devis / Bon de commande","Confirmation de visite","Conditions générales de vente","Fiche revenu DCRF","Feuille de chantier","Photos de chantier sur OBAT"];
+const DOCS_DROITE=[["CNI Mme","CNI Mr"],"Avis d'imposition","RIB","Passeport PV","Permis de conduire","Justificatif domicile < 3 mois",["BDS Mme","BDS Mr"],"Attestation TVA"];
+const DOCS_DOSSIER=[...DOCS_GAUCHE,...DOCS_DROITE.flat()];
 const COMMON=[
  {title:"Commande",hint:"Reprends les infos du devis signé.",q:[
   txt("numCmd","N° de commande",{ph:"D2026…"}),{id:"dateCmd",t:"Date de la commande",type:"date"},
@@ -522,9 +524,11 @@ function pageGarde(doc){
   y+=14;box(doc,L+4,y,D.rac==="Oui");T(doc,L+9,y,"RAC : Comptant + RAC",{b:false,s:10});
   // Documents
   y+=11;T(doc,L,y,"•  Documents :",{s:11});y+=8;
-  const dc=Array.isArray(D.docs)?D.docs:[],half=Math.ceil(DOCS_DOSSIER.length/2);
-  DOCS_DOSSIER.forEach((o,i)=>{const cx=i<half?L+6:L+92,cy=y+(i%half)*6.5;box(doc,cx,cy,dc.includes(o));T(doc,cx+4.5,cy,o,{b:false,s:9.5})});
-  y+=half*6.5+6;
+  const dc=Array.isArray(D.docs)?D.docs:[];
+  DOCS_GAUCHE.forEach((o,i)=>{const cy=y+i*6.2;box(doc,L+14,cy,dc.includes(o));T(doc,L+18.5,cy,o,{b:false,s:9.5})});
+  DOCS_DROITE.forEach((o,i)=>{const cy=y+i*6.2;const items=Array.isArray(o)?o:[o];let cx=L+100;
+    items.forEach((it,k)=>{if(k){T(doc,cx-1,cy,"/",{b:false,s:9.5});cx+=3}box(doc,cx,cy,dc.includes(it));T(doc,cx+4.5,cy,it,{b:false,s:9.5});doc.setFontSize(9.5);cx+=doc.getTextWidth(it)+8})});
+  y+=Math.max(DOCS_GAUCHE.length,DOCS_DROITE.length)*6.2+5;
   // Signature
   T(doc,105,y,"Nom + Date + Signature du responsable d'agence pour passage technique",{s:10,c:1});y+=4;
   doc.setLineWidth(.3);const cw=(R-L)/3;doc.rect(L,y,R-L,24);doc.line(L,y+7,R,y+7);doc.line(L+cw,y,L+cw,y+24);doc.line(L+2*cw,y,L+2*cw,y+24);
